@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VideoVault — Dashboard</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --bg: #06090f;
+        --surface: #0b1018;
+        --card: rgba(16, 24, 37, 0.85);
+        --border: rgba(255, 255, 255, 0.08);
+        --accent: #7b6eff;
+        --accent2: #5b9eff;
+        --glow: rgba(123, 110, 255, 0.3);
+        --sub: rgba(123, 110, 255, 0.12);
+        --teal: #00e5d4;
+        --gold: #ffb830;
+        --rose: #ff6b8a;
+        --success: #22d3a0;
+        --text-1: #eef2ff;
+        --text-2: #8892b0;
+        --text-3: #445070;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text-1);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 60% 50% at 15% 10%,
+            rgba(123, 110, 255, 0.1) 0%,
+            transparent 55%
+          ),
+          radial-gradient(
+            ellipse 50% 40% at 85% 85%,
+            rgba(0, 229, 212, 0.06) 0%,
+            transparent 50%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 240px;
+        height: 100vh;
+        background: rgba(11, 16, 24, 0.95);
+        border-right: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+        padding: 28px 0;
+      }
+      .sidebar-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: 1.15rem;
+        padding: 0 22px 28px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+      }
+      .sidebar-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #7b6eff, #5b9eff);
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        font-size: 0.78rem;
+        color: white;
+        box-shadow: 0 4px 14px var(--glow);
+      }
+      .sidebar-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-3);
+        padding: 0 22px;
+        margin-bottom: 8px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 22px;
+        color: var(--text-2);
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-left: 2px solid transparent;
+      }
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-1);
+      }
+      .nav-item.active {
+        background: var(--sub);
+        color: var(--accent);
+        border-left-color: var(--accent);
+      }
+      .nav-item i {
+        width: 16px;
+        text-align: center;
+        font-size: 0.88rem;
+      }
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 20px 22px;
+        border-top: 1px solid var(--border);
+      }
+      .sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .sidebar-avatar {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #ffb830, #ff6b8a);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 0.78rem;
+        color: white;
+      }
+      .sidebar-user-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+      .sidebar-user-role {
+        font-size: 0.7rem;
+        color: var(--text-3);
+      }
+      .btn-logout {
+        width: 100%;
+        background: rgba(255, 107, 138, 0.1);
+        border: 1px solid rgba(255, 107, 138, 0.2);
+        color: var(--rose);
+        padding: 9px;
+        border-radius: 99px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "DM Sans", sans-serif;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+      .btn-logout:hover {
+        background: rgba(255, 107, 138, 0.18);
+      }
+
+      /* MAIN */
+      .main {
+        margin-left: 240px;
+        padding: 32px;
+        min-height: 100vh;
+        position: relative;
+        z-index: 1;
+      }
+      .page {
+        display: none;
+      }
+      .page.active {
+        display: block;
+        animation: fadeIn 0.3s ease both;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* HEADER */
+      .page-header {
+        margin-bottom: 28px;
+      }
+      .page-title {
+        font-family: "Syne", sans-serif;
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin-bottom: 4px;
+      }
+      .page-sub {
+        font-size: 0.85rem;
+        color: var(--text-2);
+      }
+
+      /* STAT CARDS */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      .stat-card {
+        background: var(--card);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s;
+      }
+      .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      }
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+      }
+      .stat-card.purple::before {
+        background: linear-gradient(90deg, #7b6eff, #5b9eff);
+      }
+      .stat-card.teal::before {
+        background: linear-gradient(90deg, #00e5d4, #7b6eff);
+      }
+      .stat-card.gold::before {
+        background: linear-gradient(90deg, #ffb830, #ff6b8a);
+      }
+      .stat-card.green::before {
+        background: var(--success);
+      }
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 1rem;
+        margin-bottom: 14px;
+      }
+      .stat-card.purple .stat-icon {
+        background: rgba(123, 110, 255, 0.15);
+        color: var(--accent);
+      }
+      .stat-card.teal .stat-icon {
+        background: rgba(0, 229, 212, 0.12);
+        color: var(--teal);
+      }
+      .stat-card.gold .stat-icon {
+        background: rgba(255, 184, 48, 0.12);
+        color: var(--gold);
+      }
+      .stat-card.green .stat-icon {
+        background: rgba(34, 211, 160, 0.12);
+        color: var(--success);
+      }
+      .stat-value {
+        font-family: "Syne", sans-serif;
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .stat-label {
+        font-size: 0.78rem;
+        color: var(--text-2);
+      }
+      .stat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 99px;
+        margin-top: 8px;
+      }
+      .stat-badge.up {
+        background: rgba(34, 211, 160, 0.12);
+        color: var(--success);
+      }
+
+      /* CHART */
+      .chart-card {
+        background: var(--card);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 24px;
+        margin-bottom: 28px;
+      }
+      .chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .chart-title {
+        font-family: "Syne", sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      .chart-sub {
+        font-size: 0.75rem;
+        color: var(--text-3);
+      }
+      .chart-wrap {
+        height: 160px;
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+      }
+      .bar-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .bar {
+        width: 100%;
+        border-radius: 6px 6px 0 0;
+        background: linear-gradient(to top, #7b6eff, #5b9eff);
+        min-height: 4px;
+        transition: height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+      }
+      .bar:hover {
+        filter: brightness(1.2);
+      }
+      .bar-tooltip {
+        position: absolute;
+        top: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-1);
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 5px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .bar:hover .bar-tooltip {
+        opacity: 1;
+      }
+      .bar-label {
+        font-size: 0.6rem;
+        color: var(--text-3);
+        white-space: nowrap;
+      }
+
+      /* RECENT TABLE */
+      .table-card {
+        background: var(--card);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      .table-header {
+        padding: 20px 22px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .table-title {
+        font-family: "Syne", sans-serif;
+        font-size: 0.95rem;
+        font-weight: 700;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text-3);
+        padding: 12px 22px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+      td {
+        padding: 13px 22px;
+        font-size: 0.82rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        color: var(--text-2);
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .td-title {
+        color: var(--text-1);
+        font-weight: 500;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* PLATFORM BADGE */
+      .plat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+      .plat-badge.youtube {
+        background: rgba(255, 0, 0, 0.1);
+        color: #ff4444;
+      }
+      .plat-badge.twitter {
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--text-2);
+      }
+      .plat-badge.tiktok {
+        background: rgba(0, 229, 212, 0.1);
+        color: var(--teal);
+      }
+
+      /* TYPE BADGE */
+      .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+      .type-badge.video {
+        background: var(--sub);
+        color: var(--accent);
+      }
+      .type-badge.audio {
+        background: rgba(255, 184, 48, 0.1);
+        color: var(--gold);
+      }
+
+      /* EMPTY STATE */
+      .empty {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--text-3);
+      }
+      .empty i {
+        font-size: 2.5rem;
+        margin-bottom: 14px;
+        display: block;
+        opacity: 0.4;
+      }
+      .empty p {
+        font-size: 0.85rem;
+      }
+
+      /* REFRESH BTN */
+      .btn-refresh {
+        background: var(--sub);
+        border: 1px solid rgba(123, 110, 255, 0.2);
+        color: var(--accent);
+        padding: 8px 16px;
+        border-radius: 99px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "DM Sans", sans-serif;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-refresh:hover {
+        background: rgba(123, 110, 255, 0.2);
+      }
+
+      /* RESPONSIVE */
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-100%);
+          transition: transform 0.3s;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .main {
+          margin-left: 0;
+          padding: 20px;
+        }
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <span class="sidebar-logo-icon"><i class="fa-solid fa-bolt"></i></span>
+        VideoVault
+      </div>
+
+      <div class="sidebar-label">Menu</div>
+      <div class="nav-item active" onclick="showPage('overview')">
+        <i class="fa-solid fa-chart-line"></i> Overview
+      </div>
+      <div class="nav-item" onclick="showPage('downloads')">
+        <i class="fa-solid fa-download"></i> Downloads
+      </div>
+
+      <div class="sidebar-label" style="margin-top: 16px">Quick Links</div>
+      <div class="nav-item" onclick="window.open('/', '_blank')">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Site
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar"><i class="fa-solid fa-user"></i></div>
+          <div>
+            <div class="sidebar-user-name">Admin</div>
+            <div class="sidebar-user-role">Administrator</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <!-- OVERVIEW PAGE -->
+      <div class="page active" id="page-overview">
+        <div class="page-header">
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-sub">Welcome back, Admin 👋</p>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card purple">
+            <div class="stat-icon"><i class="fa-solid fa-download"></i></div>
+            <div class="stat-value" id="totalDownloads">—</div>
+            <div class="stat-label">Total Downloads</div>
+          </div>
+          <div class="stat-card teal">
+            <div class="stat-icon"><i class="fa-solid fa-film"></i></div>
+            <div class="stat-value" id="totalMP4">—</div>
+            <div class="stat-label">Video Downloads</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-icon"><i class="fa-solid fa-music"></i></div>
+            <div class="stat-value" id="totalMP3">—</div>
+            <div class="stat-label">Audio Downloads</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">
+              <i class="fa-solid fa-calendar-day"></i>
+            </div>
+            <div class="stat-value" id="todayDownloads">—</div>
+            <div class="stat-label">Today</div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Downloads (Last 14 Days)</div>
+              <div class="chart-sub">Daily download activity</div>
+            </div>
+            <button class="btn-refresh" onclick="loadStats()">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+          <div class="chart-wrap" id="chartWrap">
+            <div class="empty">
+              <i class="fa-solid fa-chart-bar"></i>
+              <p>No data yet</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Downloads -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Recent Downloads</div>
+          </div>
+          <div class="table-wrap">
+            <table id="recentTable">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Platform</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="recentBody">
+                <tr>
+                  <td colspan="5">
+                    <div class="empty">
+                      <i class="fa-solid fa-inbox"></i>
+                      <p>No downloads yet</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOWNLOADS PAGE -->
+      <div class="page" id="page-downloads">
+        <div class="page-header">
+          <h1 class="page-title">All Downloads</h1>
+          <p class="page-sub">Complete download history</p>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Download History</div>
+            <button class="btn-refresh" onclick="loadStats()">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Platform</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="allBody">
+                <tr>
+                  <td colspan="6">
+                    <div class="empty">
+                      <i class="fa-solid fa-inbox"></i>
+                      <p>No downloads yet</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      let statsData = null;
+
+      /* ── Pages ── */
+      function showPage(name) {
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((n) => n.classList.remove("active"));
+        document.getElementById(`page-${name}`).classList.add("active");
+        event.currentTarget.classList.add("active");
+      }
+
+      /* ── Load Stats ── */
+      async function loadStats() {
+        try {
+          const res = await fetch("/api/admin/stats");
+          if (!res.ok) {
+            window.location.href = "/admin";
+            return;
+          }
+          statsData = await res.json();
+          renderStats(statsData);
+        } catch {
+          console.error("Failed to load stats");
+        }
+      }
+
+      function renderStats(data) {
+        // Stat cards
+        document.getElementById("totalDownloads").textContent = (
+          data.totalDownloads || 0
+        ).toLocaleString();
+        document.getElementById("totalMP4").textContent = (
+          data.totalMP4 || 0
+        ).toLocaleString();
+        document.getElementById("totalMP3").textContent = (
+          data.totalMP3 || 0
+        ).toLocaleString();
+
+        const today = new Date().toISOString().split("T")[0];
+        document.getElementById("todayDownloads").textContent = (
+          data.dailyStats?.[today] || 0
+        ).toLocaleString();
+
+        // Chart
+        renderChart(data.dailyStats || {});
+
+        // Recent table
+        renderTable(data.recentDownloads || []);
+      }
+
+      function renderChart(dailyStats) {
+        const wrap = document.getElementById("chartWrap");
+        const entries = Object.entries(dailyStats)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .slice(-14);
+
+        if (entries.length === 0) {
+          wrap.innerHTML =
+            '<div class="empty"><i class="fa-solid fa-chart-bar"></i><p>No data yet</p></div>';
+          return;
+        }
+
+        const max = Math.max(...entries.map(([, v]) => v), 1);
+
+        wrap.innerHTML = entries
+          .map(([date, count]) => {
+            const h = Math.max(8, Math.round((count / max) * 140));
+            const label = date.slice(5); // MM-DD
+            return `<div class="bar-item">
+        <div class="bar" style="height:${h}px">
+          <div class="bar-tooltip">${count} downloads</div>
+        </div>
+        <span class="bar-label">${label}</span>
+      </div>`;
+          })
+          .join("");
+      }
+
+      function renderTable(downloads) {
+        const tbody = document.getElementById("recentBody");
+        const allBody = document.getElementById("allBody");
+
+        if (!downloads.length) {
+          const empty =
+            '<tr><td colspan="6"><div class="empty"><i class="fa-solid fa-inbox"></i><p>No downloads yet</p></div></td></tr>';
+          tbody.innerHTML = empty;
+          allBody.innerHTML = empty;
+          return;
+        }
+
+        const rows = downloads.map((d, i) => {
+          const platClass =
+            d.platform === "youtube"
+              ? "youtube"
+              : d.platform === "twitter"
+                ? "twitter"
+                : "tiktok";
+          const platIcon =
+            d.platform === "youtube"
+              ? "fab fa-youtube"
+              : d.platform === "twitter"
+                ? "fab fa-x-twitter"
+                : "fab fa-tiktok";
+          const platName =
+            d.platform === "youtube"
+              ? "YouTube"
+              : d.platform === "twitter"
+                ? "X"
+                : "TikTok";
+          const typeClass = d.type === "audio" ? "audio" : "video";
+          const typeIcon = d.type === "audio" ? "fa-music" : "fa-film";
+          const typeLabel = d.type === "audio" ? "MP3" : "MP4";
+          const size = d.filesize ? formatBytes(d.filesize) : "—";
+          const time = formatTime(d.time);
+
+          return `<tr>
+        <td style="color:var(--text-3)">${i + 1}</td>
+        <td class="td-title">${d.title || "—"}</td>
+        <td><span class="plat-badge ${platClass}"><i class="${platIcon}"></i> ${platName}</span></td>
+        <td><span class="type-badge ${typeClass}"><i class="fa-solid fa-${typeIcon}"></i> ${typeLabel}</span></td>
+        <td>${size}</td>
+        <td style="color:var(--text-3)">${time}</td>
+      </tr>`;
+        });
+
+        // Recent: show first 10
+        tbody.innerHTML = rows.slice(0, 10).join("");
+        allBody.innerHTML = rows.join("");
+      }
+
+      function formatBytes(bytes) {
+        if (!bytes) return "—";
+        const units = ["B", "KB", "MB", "GB"];
+        let i = 0,
+          s = bytes;
+        while (s >= 1024 && i < units.length - 1) {
+          s /= 1024;
+          i++;
+        }
+        return `${s.toFixed(1)} ${units[i]}`;
+      }
+
+      function formatTime(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const now = new Date();
+        const diff = Math.floor((now - d) / 1000);
+        if (diff < 60) return "Just now";
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return d.toLocaleDateString();
+      }
+
+      /* ── Logout ── */
+      async function logout() {
+        await fetch("/api/admin/logout", { method: "POST" });
+        window.location.href = "/admin";
+      }
+
+      // Load on start + auto-refresh every 30s
+      loadStats();
+      setInterval(loadStats, 30000);
+    </script>
+  </body>
+</html>

@@ -1,165 +1,197 @@
 # 🎬 VideoVault — Premium Video Downloader
 
-A startup-quality web app for downloading videos from YouTube, X (Twitter), and TikTok.
-Built with Node.js + Express backend and a glassmorphism dark-mode frontend.
+موقع تحميل فيديوهات احترافي يدعم YouTube و X (Twitter) و TikTok.
+مبني بـ Node.js + Express في الباك إند وواجهة مستخدم عصرية بتأثيرات Glassmorphism.
 
 ---
 
-## 🚀 Quick Start
+## ✨ المميزات
 
-### Prerequisites
+- 🎥 تحميل فيديوهات من YouTube و X (Twitter) و TikTok
+- 🎵 استخراج MP3 من أي فيديو
+- 📊 شريط تقدم حقيقي أثناء التحميل (SSE)
+- 🌙 Dark / Light Mode
+- 💫 Splash Screen + Particles خلفية متحركة
+- 📱 PWA — قابل للتثبيت كتطبيق على الجوال
+- 🔔 Push Notifications
+- 🕐 تاريخ آخر 5 روابط
+- 🔒 حماية بكلمة سر للموقع
+- 📈 لوحة تحكم للمدير
+
+---
+
+## 🚀 تشغيل المشروع
+
+### المتطلبات
+
 - **Node.js** v18+ — [nodejs.org](https://nodejs.org)
-- **yt-dlp** — The download engine
+- **yt-dlp** — محرك التحميل
+- **ffmpeg** — لدمج الفيديو والصوت
 
-### 1. Install yt-dlp
+### 1. تثبيت yt-dlp
 
 ```bash
-# macOS (Homebrew)
+# macOS
 brew install yt-dlp
 
-# Linux / Ubuntu
-sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-sudo chmod a+rx /usr/local/bin/yt-dlp
-
-# Windows (winget)
-winget install yt-dlp
-
-# Or via pip (any OS)
+# Linux
 pip install yt-dlp
+
+# Windows
+pip install yt-dlp
+# أو
+winget install yt-dlp
 ```
 
-### 2. Install Node dependencies
+### 2. تثبيت ffmpeg
+
+```bash
+# macOS
+brew install ffmpeg
+
+# Windows
+winget install ffmpeg
+```
+
+### 3. تثبيت الحزم وتشغيل السيرفر
 
 ```bash
 cd video-downloader
 npm install
-```
-
-### 3. Start the server
-
-```bash
-# Production
 npm start
-
-# Development (auto-reload)
-npm run dev
 ```
 
-### 4. Open in browser
+### 4. افتح المتصفح
 
-Visit: **http://localhost:3000**
+```
+http://localhost:3000
+```
 
 ---
 
-## 📁 Project Structure
+## 📁 هيكل المشروع
 
 ```
 video-downloader/
-├── server.js              # Express entry point
+├── server.js                  # نقطة الدخول الرئيسية
 ├── package.json
+├── data/
+│   └── stats.json             # إحصائيات التحميل (يُنشأ تلقائياً)
 ├── routes/
-│   └── video.js           # /api/video endpoints (info, download, health)
+│   ├── video.js               # API التحميل والمعلومات
+│   └── admin.js               # API لوحة التحكم
 ├── utils/
-│   └── urlValidator.js    # URL validation & platform detection
+│   ├── urlValidator.js        # التحقق من الروابط
+│   └── stats.js               # نظام الإحصائيات
 └── public/
-    └── index.html         # Full frontend (HTML + CSS + JS)
+    ├── index.html             # الواجهة الرئيسية
+    ├── login.html             # صفحة الدخول
+    ├── admin.html             # لوحة التحكم
+    ├── admin-login.html       # دخول المدير
+    ├── manifest.json          # PWA manifest
+    └── sw.js                  # Service Worker
 ```
 
 ---
 
 ## 🔌 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/video/info` | Fetch video metadata + available qualities |
-| `GET`  | `/api/video/download` | Stream video/audio download |
-| `GET`  | `/api/video/health` | Check yt-dlp installation status |
+| Method | Endpoint              | الوصف                                |
+| ------ | --------------------- | ------------------------------------ |
+| `POST` | `/api/video/info`     | جلب معلومات الفيديو والجودات المتاحة |
+| `GET`  | `/api/video/download` | تحميل الفيديو أو الصوت               |
+| `GET`  | `/api/video/progress` | SSE لتقدم التحميل الحقيقي            |
+| `GET`  | `/api/video/health`   | التحقق من تثبيت yt-dlp               |
+| `POST` | `/api/admin/login`    | تسجيل دخول المدير                    |
+| `GET`  | `/api/admin/stats`    | جلب الإحصائيات                       |
+| `POST` | `/api/admin/logout`   | تسجيل خروج المدير                    |
+| `POST` | `/auth`               | تسجيل دخول الموقع                    |
 
-### POST `/api/video/info`
+---
 
-```json
-// Request body
-{ "url": "https://youtube.com/watch?v=..." }
+## 🔒 كلمات السر
 
-// Response
-{
-  "title": "Video Title",
-  "thumbnail": "https://...",
-  "duration": "3:45",
-  "uploader": "Channel Name",
-  "viewCount": "1,234,567",
-  "platform": { "key": "youtube", "name": "YouTube", "icon": "fab fa-youtube", "color": "#FF0000" },
-  "qualities": [
-    { "formatId": "137", "quality": "1080p", "ext": "mp4", "filesizeFormatted": "45.3 MB" },
-    { "formatId": "22", "quality": "720p", "ext": "mp4", "filesizeFormatted": "28.1 MB" }
-  ],
-  "audioAvailable": true
-}
+### كلمة سر الموقع
+
+في `server.js`:
+
+```javascript
+const SITE_PASSWORD = process.env.SITE_PASSWORD || "videovault2025";
 ```
 
-### GET `/api/video/download`
+### كلمة سر المدير
 
-Query params:
-- `url` — Video URL (required)
-- `format` — Format ID from info endpoint (optional, defaults to best)
-- `type` — `"video"` or `"audio"` (required)
+في `routes/admin.js`:
 
----
-
-## ⚙️ Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT`   | `3000`  | Server port |
-
-Set via environment: `PORT=8080 npm start`
-
----
-
-## 🌐 Deployment
-
-### Render / Railway / Fly.io
-
-1. Push to GitHub
-2. Connect repo to platform
-3. Set `npm start` as the start command
-4. **Ensure yt-dlp is installed** — add a `build.sh`:
-
-```bash
-#!/bin/bash
-npm install
-curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-chmod a+rx /usr/local/bin/yt-dlp
+```javascript
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin2025";
 ```
 
-### Docker
+> **نصيحة:** غيّر كلمات السر قبل الرفع على الإنترنت!
 
-```dockerfile
-FROM node:20-alpine
-RUN apk add --no-cache python3 py3-pip ffmpeg && pip install yt-dlp --break-system-packages
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --production
-COPY . .
-EXPOSE 3000
-CMD ["node", "server.js"]
+---
+
+## 📈 لوحة التحكم
+
+افتح في المتصفح:
+
+```
+http://localhost:3000/admin
 ```
 
+تعرض:
+
+- إجمالي التحميلات
+- عدد MP4 و MP3
+- تحميلات اليوم
+- رسم بياني لآخر 14 يوم
+- آخر 50 تحميل مع التفاصيل
+
 ---
 
-## ⚠️ Legal Notice
+## 🌐 الرفع على الإنترنت (Railway)
 
-This tool is intended for **personal use only**. Only download content you have rights to download. Respect the terms of service of YouTube, X (Twitter), TikTok, and all other platforms. The developer assumes no liability for misuse.
+1. ارفع المشروع على GitHub
+2. افتح [railway.app](https://railway.app) ووصّل الـ repo
+3. أضف متغيرات البيئة:
+   ```
+   SITE_PASSWORD=كلمة_سرك
+   ADMIN_PASSWORD=كلمة_سر_المدير
+   PORT=3000
+   ```
+4. أضف build command:
+   ```bash
+   pip install yt-dlp && npm install
+   ```
 
 ---
 
-## 🧰 Tech Stack
+## ⚙️ متغيرات البيئة
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | HTML5, CSS3 (Glassmorphism), Vanilla JS |
-| Backend | Node.js, Express.js |
-| Downloader | yt-dlp (via child_process) |
-| Fonts | Syne + DM Sans (Google Fonts) |
-| Icons | Font Awesome 6 |
-| Security | Helmet, express-rate-limit, CORS |
+| المتغير          | الافتراضي        | الوصف          |
+| ---------------- | ---------------- | -------------- |
+| `PORT`           | `3000`           | منفذ السيرفر   |
+| `SITE_PASSWORD`  | `videovault2025` | كلمة سر الموقع |
+| `ADMIN_PASSWORD` | `admin2025`      | كلمة سر المدير |
+
+---
+
+## 🧰 التقنيات المستخدمة
+
+| الطبقة    | التقنية                                 |
+| --------- | --------------------------------------- |
+| Frontend  | HTML5, CSS3 (Glassmorphism), Vanilla JS |
+| Backend   | Node.js, Express.js                     |
+| التحميل   | yt-dlp + ffmpeg                         |
+| الخطوط    | Syne + DM Sans (Google Fonts)           |
+| الأيقونات | Font Awesome 6                          |
+| الأمان    | Helmet, Rate Limiting, Cookie Auth      |
+| PWA       | Service Worker, Web Manifest            |
+| التقدم    | Server-Sent Events (SSE)                |
+
+---
+
+## ⚠️ تنبيه قانوني
+
+هذه الأداة مخصصة **للاستخدام الشخصي فقط**.
+احترم حقوق الملكية الفكرية وشروط الاستخدام لكل منصة.

@@ -3,7 +3,11 @@ const router = express.Router();
 const { exec, spawn } = require("child_process");
 const { promisify } = require("util");
 const path = require("path");
+const fs = require("fs");
+const os = require("os");
+const crypto = require("crypto");
 const { validateUrl, PLATFORMS } = require("../utils/urlValidator");
+const { recordDownload } = require("../utils/stats");
 
 const execAsync = promisify(exec);
 
@@ -131,21 +135,62 @@ router.post("/info", async (req, res) => {
   }
 });
 
+// ── SSE Progress endpoint ─────────────────────────────────
+// GET /api/video/progress?id=xxx  — streams yt-dlp progress events
+const progressClients = new Map();
+
+router.get("/progress", (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).end();
+
+  // Server-Sent Events headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.flushHeaders();
+
+  progressClients.set(id, res);
+
+  req.on("close", () => progressClients.delete(id));
+});
+
+function sendProgress(id, data) {
+  const client = progressClients.get(id);
+  if (client) client.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+// ── Download endpoint ──────────────────────────────────────
 router.get("/download", async (req, res) => {
+  let tmpDir = null;
+
   try {
-    const { url, format, type } = req.query;
+    const { url, format, type, id } = req.query;
     const validation = validateUrl(url);
     if (!validation.valid)
       return res.status(400).json({ error: validation.error });
 
+    const isTwitter = url.includes("twitter.com") || url.includes("x.com");
+    const isTikTok = url.includes("tiktok.com");
+
     let formatSelector, ext, contentType;
+
     if (type === "audio") {
       formatSelector = "bestaudio/best";
       ext = "mp3";
       contentType = "audio/mpeg";
+    } else if (isTwitter) {
+      formatSelector = "http-2176/http-950/http-632";
+      ext = "mp4";
+      contentType = "video/mp4";
+    } else if (isTikTok) {
+      formatSelector = "best[ext=mp4]/best";
+      ext = "mp4";
+      contentType = "video/mp4";
     } else {
       formatSelector =
-        format || "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
+        format ||
+        "18/best[vcodec!=none][acodec!=none][ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best";
       ext = "mp4";
       contentType = "video/mp4";
     }
@@ -163,36 +208,144 @@ router.get("/download", async (req, res) => {
         .substring(0, 80);
     } catch {}
 
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${filename}.${ext}"`,
-    );
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Transfer-Encoding", "chunked");
+    const tmpId = crypto.randomBytes(8).toString("hex");
+    tmpDir = path.join(os.tmpdir(), `vv_${tmpId}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
 
+    const outputTemplate = path.join(tmpDir, `video.%(ext)s`);
     const args = [
-      "--no-warnings",
       "--no-playlist",
+      "--progress", // تفعيل التقدم
+      "--newline", // سطر جديد لكل تحديث
+      "--progress-template",
+      "%(progress._percent_str)s of %(progress._total_bytes_str)s at %(progress._speed_str)s ETA %(progress._eta_str)s",
       "-f",
       formatSelector,
       "-o",
-      "-",
+      outputTemplate,
     ];
+
+    if (!isTwitter && !isTikTok && type !== "audio")
+      args.push("--merge-output-format", "mp4");
     if (type === "audio") args.push("--extract-audio", "--audio-format", "mp3");
     args.push(url);
 
-    const ytDlp = spawn("yt-dlp", args);
-    ytDlp.stdout.pipe(res);
-    ytDlp.stderr.on("data", (data) =>
-      console.log("yt-dlp:", data.toString().trim()),
-    );
-    ytDlp.on("error", (err) => {
-      if (!res.headersSent) res.status(500).json({ error: "Download failed." });
+    sendProgress(id, { stage: "start", pct: 2, status: "Connecting…" });
+
+    await new Promise((resolve, reject) => {
+      // yt-dlp يكتب التقدم على stderr — نقرأه من هناك
+      const ytDlp = spawn("yt-dlp", args);
+
+      function parseLine(line) {
+        const raw = line.trim();
+        if (!raw) return;
+
+        // Template format: "45.2% of 45.33MiB at 2.50MiB/s ETA 00:12"
+        const tmpl = raw.match(
+          /^([\d.]+)%\s+of\s+~?([\d.]+\w+)\s+at\s+([\S]+)\s+ETA\s+([\d:]+)/,
+        );
+        if (tmpl) {
+          const pct = Math.min(95, Math.round(parseFloat(tmpl[1])));
+          sendProgress(id, {
+            stage: "downloading",
+            pct,
+            size: tmpl[2],
+            speed: tmpl[3],
+            eta: tmpl[4],
+          });
+          return;
+        }
+
+        // Fallback: standard yt-dlp format
+        const std = raw.match(
+          /\[download\]\s+([\d.]+)%\s+of\s+~?([\d.]+\w+)(?:.*?at\s+([\S]+))?(?:.*?ETA\s+([\d:]+))?/,
+        );
+        if (std) {
+          const pct = Math.min(95, Math.round(parseFloat(std[1])));
+          sendProgress(id, {
+            stage: "downloading",
+            pct,
+            size: std[2] || null,
+            speed: std[3] || null,
+            eta: std[4] || null,
+          });
+          return;
+        }
+
+        if (raw.includes("[Merger]") || raw.includes("Merging formats")) {
+          sendProgress(id, { stage: "merging", pct: 96 });
+        }
+        if (raw.includes("[ExtractAudio]")) {
+          sendProgress(id, { stage: "audio", pct: 96 });
+        }
+      }
+
+      // yt-dlp يكتب التقدم على stderr
+      ytDlp.stderr.on("data", (d) => {
+        d.toString()
+          .split("\n")
+          .forEach((line) => {
+            console.log("yt-dlp:", line.trim());
+            parseLine(line);
+          });
+      });
+
+      // بعض الإصدارات تكتب على stdout
+      ytDlp.stdout.on("data", (d) => {
+        d.toString()
+          .split("\n")
+          .forEach((line) => parseLine(line));
+      });
+
+      ytDlp.on("error", reject);
+      ytDlp.on("close", (code) =>
+        code === 0 ? resolve() : reject(new Error(`yt-dlp exited ${code}`)),
+      );
     });
-    ytDlp.on("close", () => res.end());
-    req.on("close", () => ytDlp.kill("SIGTERM"));
+
+    sendProgress(id, { stage: "saving", pct: 98, status: "Saving file…" });
+
+    const files = fs.readdirSync(tmpDir);
+    if (files.length === 0) throw new Error("Output file not found");
+
+    const finalFile = path.join(tmpDir, files[0]);
+    const stat = fs.statSync(finalFile);
+    const realExt = path.extname(files[0]).slice(1) || ext;
+
+    sendProgress(id, { stage: "done", pct: 100, status: "Complete!" });
+
+    // تسجيل التحميل في الإحصائيات
+    const validation2 = validateUrl(url);
+    try {
+      recordDownload({
+        title: filename.replace(/_/g, " "),
+        platform: validation2.platform || "unknown",
+        type: type || "video",
+        quality: format || "best",
+        filesize: stat.size,
+      });
+    } catch {}
+
+    res.setHeader("Access-Control-Expose-Headers", "Content-Length");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}.${realExt}"`,
+    );
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Length", stat.size);
+
+    const readStream = fs.createReadStream(finalFile);
+    readStream.pipe(res);
+    readStream.on("close", () =>
+      fs.rm(tmpDir, { recursive: true, force: true }, () => {}),
+    );
   } catch (err) {
-    if (!res.headersSent) res.status(500).json({ error: "Download failed." });
+    console.error("Download error:", err.message);
+    if (req.query.id)
+      sendProgress(req.query.id, { stage: "error", pct: 0, status: "Failed" });
+    if (tmpDir) fs.rm(tmpDir, { recursive: true, force: true }, () => {});
+    if (!res.headersSent)
+      res.status(500).json({ error: "Download failed. Please try again." });
   }
 });
 

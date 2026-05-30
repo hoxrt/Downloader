@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VideoVault — Admin</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --bg: #06090f;
+        --card: rgba(16, 24, 37, 0.9);
+        --border: rgba(255, 255, 255, 0.08);
+        --accent: #7b6eff;
+        --glow: rgba(123, 110, 255, 0.35);
+        --sub: rgba(123, 110, 255, 0.13);
+        --text-1: #eef2ff;
+        --text-2: #8892b0;
+        --text-3: #445070;
+        --error: #ff6b8a;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text-1);
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 70% 60% at 30% 20%,
+            rgba(123, 110, 255, 0.12) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 50% 50% at 70% 80%,
+            rgba(0, 229, 212, 0.06) 0%,
+            transparent 55%
+          );
+        pointer-events: none;
+      }
+      .card {
+        background: var(--card);
+        backdrop-filter: blur(28px);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        padding: 44px 40px;
+        width: 100%;
+        max-width: 400px;
+        position: relative;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+        animation: fadeInUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 15%;
+        right: 15%;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent),
+          transparent
+        );
+        border-radius: 99px;
+        opacity: 0.7;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(28px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 11px;
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: 1.4rem;
+        letter-spacing: -0.03em;
+        margin-bottom: 4px;
+      }
+      .logo-icon {
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(135deg, #7b6eff, #5b9eff);
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        font-size: 0.9rem;
+        color: white;
+        box-shadow: 0 6px 20px var(--glow);
+      }
+      .admin-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 184, 48, 0.1);
+        border: 1px solid rgba(255, 184, 48, 0.25);
+        color: #ffb830;
+        padding: 4px 12px;
+        border-radius: 99px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 0 auto 28px;
+        display: flex;
+        justify-content: center;
+      }
+      .form-label {
+        display: block;
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: var(--text-2);
+        margin-bottom: 7px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .input-wrap {
+        position: relative;
+        margin-bottom: 14px;
+      }
+      .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-3);
+        font-size: 0.85rem;
+        pointer-events: none;
+        transition: color 0.2s;
+      }
+      .input-wrap:focus-within .input-icon {
+        color: var(--accent);
+      }
+      .pw-toggle {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-3);
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: color 0.2s;
+        padding: 4px;
+      }
+      .pw-toggle:hover {
+        color: var(--text-1);
+      }
+      input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1.5px solid var(--border);
+        border-radius: 99px;
+        padding: 14px 44px 14px 42px;
+        color: var(--text-1);
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.9rem;
+        outline: none;
+        transition: all 0.25s;
+      }
+      input:focus {
+        border-color: var(--accent);
+        background: rgba(123, 110, 255, 0.07);
+        box-shadow: 0 0 0 3px var(--sub);
+      }
+      input.error {
+        border-color: var(--error);
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #7b6eff, #5b9eff);
+        border: none;
+        border-radius: 99px;
+        color: white;
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.92rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 6px 28px var(--glow);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 36px var(--glow);
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+      .err {
+        display: none;
+        align-items: center;
+        gap: 7px;
+        background: rgba(255, 107, 138, 0.1);
+        border: 1px solid rgba(255, 107, 138, 0.25);
+        color: var(--error);
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        margin-top: 12px;
+      }
+      .err.visible {
+        display: flex;
+        animation: shake 0.4s ease;
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-7px);
+        }
+        40% {
+          transform: translateX(7px);
+        }
+        60% {
+          transform: translateX(-4px);
+        }
+        80% {
+          transform: translateX(4px);
+        }
+      }
+      .back {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 0.78rem;
+        color: var(--text-3);
+      }
+      .back a {
+        color: var(--text-2);
+        transition: color 0.2s;
+      }
+      .back a:hover {
+        color: var(--text-1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">
+        <span class="logo-icon"><i class="fa-solid fa-bolt"></i></span>
+        VideoVault
+      </div>
+      <div class="admin-badge">
+        <i class="fa-solid fa-shield-halved"></i> Admin Access
+      </div>
+
+      <label class="form-label">Admin Password</label>
+      <div class="input-wrap">
+        <i class="fa-solid fa-key input-icon"></i>
+        <input type="password" id="pw" placeholder="Enter admin password…" />
+        <button class="pw-toggle" onclick="togglePw()">
+          <i class="fa-regular fa-eye" id="eyeIcon"></i>
+        </button>
+      </div>
+
+      <button class="btn" id="btn" onclick="login()">
+        <i class="fa-solid fa-shield-halved"></i> Access Dashboard
+      </button>
+
+      <div class="err" id="err">
+        <i class="fa-solid fa-circle-exclamation"></i> Wrong password. Try
+        again.
+      </div>
+
+      <p class="back">
+        <a href="/"
+          ><i class="fa-solid fa-arrow-left"></i> Back to VideoVault</a
+        >
+      </p>
+    </div>
+
+    <script>
+      document.getElementById("pw").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") login();
+      });
+      function togglePw() {
+        const i = document.getElementById("pw");
+        const ic = document.getElementById("eyeIcon");
+        i.type = i.type === "password" ? "text" : "password";
+        ic.className =
+          i.type === "password"
+            ? "fa-regular fa-eye"
+            : "fa-regular fa-eye-slash";
+      }
+      async function login() {
+        const pw = document.getElementById("pw").value.trim();
+        const btn = document.getElementById("btn");
+        const err = document.getElementById("err");
+        if (!pw) return;
+        btn.disabled = true;
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> Checking…';
+        err.classList.remove("visible");
+        try {
+          const res = await fetch("/api/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: pw }),
+          });
+          if (res.ok) {
+            btn.innerHTML =
+              '<i class="fa-solid fa-circle-check"></i> Access Granted!';
+            btn.style.background = "linear-gradient(135deg,#22D3A0,#00E5D4)";
+            setTimeout(() => (window.location.href = "/admin"), 600);
+          } else throw new Error();
+        } catch {
+          document.getElementById("pw").value = "";
+          document.getElementById("pw").classList.add("error");
+          err.classList.add("visible");
+          btn.disabled = false;
+          btn.innerHTML =
+            '<i class="fa-solid fa-shield-halved"></i> Access Dashboard';
+        }
+      }
+    </script>
+  </body>
+</html>

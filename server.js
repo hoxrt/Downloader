@@ -12,6 +12,7 @@ const rateLimit = require("express-rate-limit");
 const path = require("path");
 
 const videoRoutes = require("./routes/video");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +21,7 @@ const PORT = process.env.PORT || 3000;
 app.use(
   helmet({
     contentSecurityPolicy: false, // Disabled to allow CDN resources
-  })
+  }),
 );
 
 app.use(cors());
@@ -41,11 +42,67 @@ const limiter = rateLimit({
 
 app.use("/api/", limiter);
 
+// ── Password Protection ─────────────────────────────────────
+const SITE_PASSWORD = process.env.SITE_PASSWORD || "FdrhDfC@123#";
+
+// Simple cookie parser (must come before auth middleware)
+app.use((req, res, next) => {
+  req.cookies = {};
+  const cookieHeader = req.headers.cookie || "";
+  cookieHeader.split(";").forEach((c) => {
+    const parts = c.trim().split("=");
+    const k = parts[0]?.trim();
+    const v = parts.slice(1).join("=").trim();
+    if (k && v) req.cookies[k] = v;
+  });
+  next();
+});
+
+// Auth middleware: check session cookie
+app.use((req, res, next) => {
+  // Allow login page and auth endpoint
+  if (req.path === "/login.html" || req.path === "/auth") return next();
+  // Check cookie
+  const token = req.cookies?.["vv-auth"];
+  if (token === SITE_PASSWORD) return next();
+  // Block API
+  if (req.path.startsWith("/api/"))
+    return res.status(401).json({ error: "Unauthorized" });
+  // Show login page
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Auth endpoint
+app.post("/auth", (req, res) => {
+  const { password } = req.body;
+  if (password === SITE_PASSWORD) {
+    res.setHeader(
+      "Set-Cookie",
+      `vv-auth=${SITE_PASSWORD}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000`,
+    );
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ error: "Wrong password" });
+  }
+});
+
 // ── Static Files ─────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, "public")));
 
 // ── API Routes ───────────────────────────────────────────────
 app.use("/api/video", videoRoutes);
+app.use("/api/admin", adminRoutes);
+
+// Admin dashboard page
+app.get("/admin", (req, res) => {
+  const token = req.cookies?.["vv-admin"];
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin2025";
+  if (token === ADMIN_PASSWORD) {
+    res.sendFile(path.join(__dirname, "public", "admin.html"));
+  } else {
+    res.sendFile(path.join(__dirname, "public", "admin-login.html"));
+  }
+});
 
 // ── Catch-all: Serve Frontend ────────────────────────────────
 app.get("*", (req, res) => {
