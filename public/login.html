@@ -376,15 +376,48 @@
               '<i class="fa-solid fa-circle-check"></i> Access Granted!';
             btn.style.background = "linear-gradient(135deg, #22D3A0, #00E5D4)";
             setTimeout(() => (window.location.href = "/"), 700);
+          } else if (res.status === 429) {
+            // محظور بسبب محاولات كثيرة
+            document.getElementById("errorText").textContent =
+              "Too many attempts. Try again in 15 minutes.";
+            errMsg.classList.add("visible");
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-ban"></i> Blocked';
+            btn.style.background = "linear-gradient(135deg, #FF6B8A, #FF4444)";
+            // countdown timer
+            let seconds = 15 * 60;
+            const countdown = setInterval(() => {
+              seconds--;
+              const m = Math.floor(seconds / 60);
+              const s = seconds % 60;
+              btn.innerHTML = `<i class="fa-solid fa-clock"></i> Wait ${m}:${String(s).padStart(2, "0")}`;
+              if (seconds <= 0) {
+                clearInterval(countdown);
+                btn.disabled = false;
+                btn.innerHTML =
+                  '<i class="fa-solid fa-arrow-right-to-bracket"></i> Enter VideoVault';
+                btn.style.background = "";
+                document.getElementById("errorText").textContent =
+                  "You can try again now.";
+              }
+            }, 1000);
           } else {
-            throw new Error("Wrong password");
+            input.classList.add("error");
+            input.value = "";
+            input.focus();
+            document.getElementById("errorText").textContent =
+              "Incorrect password. Try again.";
+            errMsg.classList.add("visible");
+            btn.disabled = false;
+            btn.innerHTML =
+              '<i class="fa-solid fa-arrow-right-to-bracket"></i> Enter VideoVault';
           }
         } catch {
           input.classList.add("error");
           input.value = "";
           input.focus();
           document.getElementById("errorText").textContent =
-            "Incorrect password. Try again.";
+            "Something went wrong. Try again.";
           errMsg.classList.add("visible");
           btn.disabled = false;
           btn.innerHTML =
