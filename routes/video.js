@@ -12,7 +12,11 @@ const { recordDownload } = require("../utils/stats");
 const execAsync = promisify(exec);
 
 async function ytDlpInfo(url) {
-  const cmd = `yt-dlp --dump-json --no-playlist --no-warnings "${url}"`;
+  const hasCookies = fs.existsSync(path.join(__dirname, "../cookies.txt"));
+  const cookiesArg = hasCookies
+    ? `--cookies "${path.join(__dirname, "../cookies.txt")}"`
+    : "";
+  const cmd = `yt-dlp ${cookiesArg} --remote-components ejs:github --dump-json --no-playlist --no-warnings "${url}"`;
   const { stdout } = await execAsync(cmd, { maxBuffer: 10 * 1024 * 1024 });
   const firstLine = stdout.trim().split("\n")[0];
   return JSON.parse(firstLine);
@@ -197,9 +201,13 @@ router.get("/download", async (req, res) => {
 
     let filename = "video";
     try {
+      const hasCookies2 = fs.existsSync(path.join(__dirname, "../cookies.txt"));
+      const cookiesArg2 = hasCookies2
+        ? `--cookies "${path.join(__dirname, "../cookies.txt")}"`
+        : "";
       const { stdout } = await execAsync(
-        `yt-dlp --get-title --no-warnings "${url}"`,
-        { timeout: 10000 },
+        `yt-dlp ${cookiesArg2} --remote-components ejs:github --get-title --no-warnings "${url}"`,
+        { timeout: 15000 },
       );
       filename = stdout
         .trim()
@@ -213,17 +221,22 @@ router.get("/download", async (req, res) => {
     fs.mkdirSync(tmpDir, { recursive: true });
 
     const outputTemplate = path.join(tmpDir, `video.%(ext)s`);
+    const hasCookies = fs.existsSync(path.join(__dirname, "../cookies.txt"));
     const args = [
       "--no-playlist",
-      "--progress", // تفعيل التقدم
-      "--newline", // سطر جديد لكل تحديث
+      "--progress",
+      "--newline",
       "--progress-template",
       "%(progress._percent_str)s of %(progress._total_bytes_str)s at %(progress._speed_str)s ETA %(progress._eta_str)s",
+      "--remote-components",
+      "ejs:github",
       "-f",
       formatSelector,
       "-o",
       outputTemplate,
     ];
+    if (hasCookies)
+      args.unshift("--cookies", path.join(__dirname, "../cookies.txt"));
 
     if (!isTwitter && !isTikTok && type !== "audio")
       args.push("--merge-output-format", "mp4");

@@ -10,6 +10,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
+require("dotenv").config();
 
 const videoRoutes = require("./routes/video");
 const adminRoutes = require("./routes/admin");
