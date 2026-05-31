@@ -1689,6 +1689,15 @@
           opacity: 1;
         }
       }
+      @keyframes cursorBlink {
+        0%,
+        100% {
+          border-color: var(--accent);
+        }
+        50% {
+          border-color: transparent;
+        }
+      }
       .reveal {
         opacity: 0;
         transform: translateY(26px);
@@ -1923,6 +1932,133 @@
           font-size: 0.7rem;
         }
       }
+      /* MINI PLAYER — isolated styles */
+      #miniPlayer {
+        position: fixed;
+        bottom: 88px;
+        right: 20px;
+        width: 280px;
+        z-index: 9998;
+        background: #101825;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        opacity: 0;
+        transform: translateY(20px) scale(0.92);
+        pointer-events: none;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      #miniPlayer.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: all;
+      }
+      #miniPlayer::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #7b6eff, #00e5d4);
+      }
+      #miniPlayer .mp-thumb {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: #000;
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+      }
+      #miniPlayer .mp-thumb::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+      }
+      #miniPlayer .mp-play {
+        width: 42px;
+        height: 42px;
+        background: rgba(123, 110, 255, 0.9);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: white;
+        font-size: 1rem;
+        position: relative;
+        z-index: 1;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+      #miniPlayer .mp-thumb:hover .mp-play {
+        transform: scale(1.1);
+        box-shadow: 0 0 24px rgba(123, 110, 255, 0.6);
+      }
+      #miniPlayer .mp-info {
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #miniPlayer .mp-text {
+        flex: 1;
+        min-width: 0;
+      }
+      #miniPlayer .mp-title {
+        font-size: 0.73rem;
+        font-weight: 600;
+        color: #eef2ff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+      }
+      #miniPlayer .mp-meta {
+        font-size: 0.62rem;
+        color: #445070;
+      }
+      #miniPlayer .mp-btns {
+        display: flex;
+        gap: 5px;
+      }
+      #miniPlayer .mp-btn {
+        width: 26px;
+        height: 26px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        color: #8892b0;
+        font-size: 0.62rem;
+        transition: all 0.15s;
+      }
+      #miniPlayer .mp-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #eef2ff;
+      }
+      #miniPlayer .mp-btn.dl {
+        background: rgba(123, 110, 255, 0.15);
+        border-color: rgba(123, 110, 255, 0.3);
+        color: #7b6eff;
+      }
+      #miniPlayer .mp-btn.dl:hover {
+        background: rgba(123, 110, 255, 0.25);
+      }
+      @media (max-width: 480px) {
+        #miniPlayer {
+          width: calc(100vw - 32px);
+          right: 16px;
+          bottom: 80px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1976,7 +2112,8 @@
             <span class="dot"></span> Free · No Sign-up · Instant
           </div>
           <h1 class="hero__heading">
-            Download <span class="gradient-text">Any Video</span><br />
+            Download <span class="gradient-text" id="typewriterText"></span
+            ><br />
             <span class="gradient-text-2">In Seconds</span>
           </h1>
           <p class="hero__sub">
@@ -2366,6 +2503,107 @@
           No thanks
         </button>
       </div>
+    </div>
+
+    <!-- Video Preview Modal -->
+    <div class="dl-overlay" id="previewOverlay">
+      <div
+        class="dl-modal"
+        style="max-width: 520px; padding: 0; overflow: hidden"
+      >
+        <div
+          style="
+            position: relative;
+            background: #000;
+            aspect-ratio: 16/9;
+            width: 100%;
+          "
+        >
+          <video
+            id="previewVideo"
+            controls
+            style="width: 100%; height: 100%; display: block"
+          ></video>
+          <button
+            onclick="closePreview()"
+            style="
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              background: rgba(0, 0, 0, 0.7);
+              border: none;
+              color: white;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              cursor: pointer;
+              font-size: 0.9rem;
+              display: grid;
+              place-items: center;
+            "
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div style="padding: 18px 20px; background: var(--bg-elevated)">
+          <div
+            style="
+              font-family: &quot;Syne&quot;, sans-serif;
+              font-weight: 700;
+              font-size: 0.95rem;
+              margin-bottom: 4px;
+            "
+            id="previewTitle"
+          ></div>
+          <div
+            style="font-size: 0.78rem; color: var(--text-2)"
+            id="previewMeta"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini Player -->
+    <div id="miniPlayer">
+      <div class="mp-thumb" id="mpThumb" onclick="openMiniPreview()">
+        <div class="mp-play"><i class="fa-solid fa-play"></i></div>
+      </div>
+      <div class="mp-info">
+        <div class="mp-text">
+          <div class="mp-title" id="mpTitle">—</div>
+          <div class="mp-meta" id="mpMeta">—</div>
+        </div>
+        <div class="mp-btns">
+          <button class="mp-btn dl" id="mpDlBtn" title="Download">
+            <i class="fa-solid fa-download"></i>
+          </button>
+          <button class="mp-btn" onclick="hideMiniPlayer()" title="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download Manager Bubble -->
+    <div id="dlBubble">
+      <div id="dlBubbleTooltip">
+        <div class="dbt-title" id="dbtTitle">Downloading…</div>
+        <div class="dbt-bar-wrap">
+          <div class="dbt-bar" id="dbtBar" style="width: 0%"></div>
+        </div>
+        <div class="dbt-status">
+          <span id="dbtPct">0%</span>
+          <span id="dbtStatus">Starting…</span>
+        </div>
+      </div>
+      <button
+        id="dlBubbleBtn"
+        onclick="reopenDlModal()"
+        title="View download progress"
+      >
+        <div id="dlBubbleRing"></div>
+        <i class="fa-solid fa-download" id="dlBubbleIcon"></i>
+      </button>
     </div>
 
     <!-- Toast Container -->
@@ -2899,6 +3137,7 @@
             setDlProgress(100, "Complete!");
             setTimeout(() => {
               closeDlModal();
+              finishDlBubble();
               showToast(
                 "success",
                 "Download Complete!",
@@ -2923,29 +3162,83 @@
       }
 
       function setDlProgress(pct, status) {
+        dlCurrentPct = pct;
+        dlCurrentStatus = status;
+        // Modal
         document.getElementById("dlProgressBar").style.width = pct + "%";
         document.getElementById("dlProgressPct").textContent = pct + "%";
         document.getElementById("dlProgressStatus").textContent = status;
-        // Update ring
         document
           .getElementById("dlIconRing")
           .style.setProperty("--prog", pct + "%");
+        // Bubble sync
+        document.getElementById("dbtBar").style.width = pct + "%";
+        document.getElementById("dbtPct").textContent = pct + "%";
+        document.getElementById("dbtStatus").textContent = status;
+        document
+          .getElementById("dlBubbleRing")
+          .style.setProperty("--p", pct + "%");
       }
 
       /* ════════════════════════════════════════
-   DOWNLOAD MODAL
+   DOWNLOAD MODAL + BUBBLE
 ════════════════════════════════════════ */
+      let dlIsActive = false;
+      let dlCurrentLabel = "";
+      let dlCurrentPct = 0;
+      let dlCurrentStatus = "Starting…";
+
       function showDlModal(label) {
+        dlIsActive = true;
+        dlCurrentLabel = label;
         document.getElementById("dlModalTitle").textContent =
           `Downloading ${label}`;
         document.getElementById("dlModalDesc").textContent =
           "Please wait while we prepare your file…";
         setDlProgress(0, "Starting…");
         document.getElementById("dlOverlay").classList.add("visible");
+        // Show bubble
+        const bubble = document.getElementById("dlBubble");
+        bubble.classList.add("active");
+        document.getElementById("dbtTitle").textContent = label;
+        document.getElementById("dlBubbleBtn").classList.remove("done");
+        document.getElementById("dlBubbleIcon").className =
+          "fa-solid fa-download";
       }
+
       function closeDlModal() {
         document.getElementById("dlOverlay").classList.remove("visible");
+        // Keep bubble visible if still downloading
+        if (!dlIsActive) {
+          document.getElementById("dlBubble").classList.remove("active");
+        }
       }
+
+      function reopenDlModal() {
+        // Reopen the modal with current progress
+        document.getElementById("dlModalTitle").textContent =
+          `Downloading ${dlCurrentLabel}`;
+        setDlProgress(dlCurrentPct, dlCurrentStatus);
+        document.getElementById("dlOverlay").classList.add("visible");
+      }
+
+      function finishDlBubble() {
+        dlIsActive = false;
+        // Show green done state on bubble
+        const btn = document.getElementById("dlBubbleBtn");
+        btn.classList.add("done");
+        document.getElementById("dlBubbleIcon").className =
+          "fa-solid fa-circle-check";
+        document.getElementById("dbtTitle").textContent = "Download Complete!";
+        // Hide bubble after 5 seconds
+        setTimeout(() => {
+          document.getElementById("dlBubble").classList.remove("active");
+          btn.classList.remove("done");
+          document.getElementById("dlBubbleIcon").className =
+            "fa-solid fa-download";
+        }, 5000);
+      }
+
       document.getElementById("dlOverlay").addEventListener("click", (e) => {
         if (e.target === e.currentTarget) closeDlModal();
       });
@@ -3032,6 +3325,348 @@
         document.getElementById("videoUrl").value = decodeURIComponent(qUrl);
         setTimeout(fetchVideoInfo, 600);
       }
+
+      /* ════════════════════════════════════════
+   TYPEWRITER EFFECT
+════════════════════════════════════════ */
+      (function initTypewriter() {
+        const words = [
+          "Any Video",
+          "YouTube Videos",
+          "TikTok Clips",
+          "Twitter Videos",
+          "4K Content",
+          "MP3 Audio",
+        ];
+        let wordIndex = 0,
+          charIndex = 0,
+          isDeleting = false;
+        const el = document.getElementById("typewriterText");
+        if (!el) return;
+
+        function type() {
+          const word = words[wordIndex];
+          if (isDeleting) {
+            el.textContent = word.substring(0, charIndex - 1);
+            charIndex--;
+          } else {
+            el.textContent = word.substring(0, charIndex + 1);
+            charIndex++;
+          }
+
+          let delay = isDeleting ? 60 : 100;
+
+          if (!isDeleting && charIndex === word.length) {
+            delay = 2000; // pause at end
+            isDeleting = true;
+          } else if (isDeleting && charIndex === 0) {
+            isDeleting = false;
+            wordIndex = (wordIndex + 1) % words.length;
+            delay = 400;
+          }
+
+          setTimeout(type, delay);
+        }
+        // Add cursor style
+        el.style.borderRight = "3px solid var(--accent)";
+        el.style.paddingRight = "4px";
+        el.style.animation = "cursorBlink 1s ease-in-out infinite";
+        type();
+      })();
+
+      /* ════════════════════════════════════════
+   VIDEO PREVIEW
+════════════════════════════════════════ */
+      function openPreview() {
+        if (!currentData?.thumbnail) return;
+        const overlay = document.getElementById("previewOverlay");
+        const video = document.getElementById("previewVideo");
+        document.getElementById("previewTitle").textContent =
+          currentData.title || "";
+        document.getElementById("previewMeta").textContent =
+          `${currentData.platform?.name || ""} · ${currentData.duration || ""}`;
+
+        // Try to load a low-quality preview stream
+        const params = new URLSearchParams({
+          url: currentUrl,
+          type: "video",
+          format: "worst[ext=mp4]/worst",
+        });
+        video.src = `${API}/download?${params}`;
+        video.load();
+        overlay.classList.add("visible");
+      }
+
+      function closePreview() {
+        const overlay = document.getElementById("previewOverlay");
+        const video = document.getElementById("previewVideo");
+        video.pause();
+        video.src = "";
+        overlay.classList.remove("visible");
+      }
+
+      // Show preview button after result loads
+      const _origShowResult = showResult;
+      showResult = function (data) {
+        _origShowResult(data);
+        const btn = document.getElementById("previewBtn");
+        if (btn) btn.style.display = "inline-flex";
+      };
+
+      /* ════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+════════════════════════════════════════ */
+      document.addEventListener("keydown", async (e) => {
+        // Ctrl+V or Cmd+V — paste and analyze
+        if ((e.ctrlKey || e.metaKey) && e.key === "v") {
+          const active = document.activeElement;
+          const isInput =
+            active.tagName === "INPUT" || active.tagName === "TEXTAREA";
+          if (!isInput) {
+            e.preventDefault();
+            try {
+              const text = await navigator.clipboard.readText();
+              if (
+                text &&
+                (text.includes("youtube") ||
+                  text.includes("youtu.be") ||
+                  text.includes("twitter") ||
+                  text.includes("x.com") ||
+                  text.includes("tiktok"))
+              ) {
+                document.getElementById("videoUrl").value = text;
+                updateInputIcon(text);
+                document.getElementById("inputClear").classList.add("visible");
+                showToast("info", "URL Pasted!", "Analyzing automatically…");
+                setTimeout(fetchVideoInfo, 500);
+              }
+            } catch {}
+          }
+        }
+
+        // Escape — close modals
+        if (e.key === "Escape") {
+          closeDlModal();
+          closePreview();
+        }
+
+        // Enter — analyze (when not in input)
+        if (e.key === "Enter" && document.activeElement.id !== "videoUrl") {
+          const url = document.getElementById("videoUrl").value.trim();
+          if (url) fetchVideoInfo();
+        }
+      });
+
+      /* ════════════════════════════════════════
+   MINI PLAYER
+════════════════════════════════════════ */
+      function showMiniPlayer(data) {
+        const el = document.getElementById("miniPlayer");
+        const thumb = document.getElementById("mpThumb");
+        if (data.thumbnail)
+          thumb.style.backgroundImage = `url(${data.thumbnail})`;
+        document.getElementById("mpTitle").textContent = trunc(
+          data.title || "Unknown",
+          32,
+        );
+        document.getElementById("mpMeta").textContent =
+          `${data.platform?.name || ""} · ${data.duration || ""}`;
+        document.getElementById("mpDlBtn").onclick = () => {
+          if (data.qualities?.length)
+            triggerDownload(
+              data.qualities[0].formatId,
+              "video",
+              data.qualities[0].quality,
+            );
+          else triggerDownload("best", "video", "Best");
+        };
+        el.classList.add("visible");
+      }
+
+      function hideMiniPlayer() {
+        document.getElementById("miniPlayer").classList.remove("visible");
+      }
+
+      function openMiniPreview() {
+        if (!currentUrl) return;
+        // Open full preview modal instead
+        openPreview();
+      }
+
+      // Watch result section visibility
+      const miniObs = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (!currentData) return;
+            if (!e.isIntersecting) showMiniPlayer(currentData);
+            else hideMiniPlayer();
+          });
+        },
+        { threshold: 0.05 },
+      );
+
+      setTimeout(() => {
+        const rs = document.getElementById("resultSection");
+        if (rs) miniObs.observe(rs);
+      }, 500);
+
+      // Hook into showResult
+      const _sr2 = showResult;
+      showResult = function (data) {
+        _sr2(data);
+        hideMiniPlayer();
+        const rs = document.getElementById("resultSection");
+        miniObs.unobserve(rs);
+        miniObs.observe(rs);
+      };
+
+      /* ════════════════════════════════════════
+   IMPROVED SCROLL REVEAL
+════════════════════════════════════════ */
+      // Add staggered reveal to feature cards
+      document.querySelectorAll(".feature-card").forEach((card, i) => {
+        card.style.transitionDelay = `${i * 60}ms`;
+      });
     </script>
+    <style>
+      /* DOWNLOAD BUBBLE — isolated */
+      @property --p {
+        syntax: "<percentage>";
+        initial-value: 0%;
+        inherits: false;
+      }
+      #dlBubble {
+        position: fixed !important;
+        bottom: 28px !important;
+        left: 28px !important;
+        right: auto !important;
+        top: auto !important;
+        z-index: 99999 !important;
+        display: none;
+        flex-direction: column;
+        align-items: flex-start;
+        pointer-events: all;
+      }
+      #dlBubble.active {
+        display: flex !important;
+        animation: dlBubblePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      @keyframes dlBubblePop {
+        from {
+          opacity: 0;
+          transform: scale(0.5) translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      #dlBubbleTooltip {
+        background: #101825;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        min-width: 210px;
+        max-width: 210px;
+        display: none;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+      }
+      #dlBubble:hover #dlBubbleTooltip {
+        display: block;
+        animation: fadeInUp 0.2s ease both;
+      }
+      .dbt-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #eef2ff;
+        margin-bottom: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .dbt-bar-wrap {
+        width: 100%;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 99px;
+        overflow: hidden;
+        margin-bottom: 5px;
+      }
+      .dbt-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #7b6eff, #00e5d4);
+        border-radius: inherit;
+        transition: width 0.4s ease;
+      }
+      .dbt-status {
+        font-size: 0.65rem;
+        color: #8892b0;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      #dlBubbleBtn {
+        width: 58px !important;
+        height: 58px !important;
+        background: linear-gradient(135deg, #7b6eff, #5b9eff) !important;
+        border: none !important;
+        border-radius: 50% !important;
+        display: grid !important;
+        place-items: center !important;
+        cursor: pointer !important;
+        color: white !important;
+        font-size: 1.15rem !important;
+        position: relative !important;
+        box-shadow: 0 6px 24px rgba(123, 110, 255, 0.55) !important;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s !important;
+      }
+      #dlBubbleBtn:hover {
+        transform: scale(1.1) !important;
+        box-shadow: 0 10px 32px rgba(123, 110, 255, 0.7) !important;
+      }
+      #dlBubbleBtn.done {
+        background: linear-gradient(135deg, #22d3a0, #00e5d4) !important;
+      }
+      #dlBubbleBtn.done::after {
+        content: "";
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        border: 2px solid rgba(34, 211, 160, 0.5);
+        animation: donePulse2 1s ease-out 3;
+      }
+      @keyframes donePulse2 {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1.6);
+          opacity: 0;
+        }
+      }
+
+      #dlBubbleRing {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: conic-gradient(
+          #00e5d4 var(--p, 0%),
+          rgba(255, 255, 255, 0.08) 0%
+        );
+        mask: radial-gradient(circle at center, transparent 56%, black 56%);
+        -webkit-mask: radial-gradient(
+          circle at center,
+          transparent 56%,
+          black 56%
+        );
+        transition: --p 0.4s ease;
+        pointer-events: none;
+      }
+    </style>
   </body>
 </html>
