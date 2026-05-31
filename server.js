@@ -74,16 +74,53 @@ app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
+// ── Brute Force Protection ──────────────────────────────────
+const loginAttempts = new Map();
+
+function checkBruteForce(ip) {
+  const now = Date.now();
+  const attempts = loginAttempts.get(ip) || { count: 0, lastAttempt: now };
+  if (now - attempts.lastAttempt > 15 * 60 * 1000) {
+    loginAttempts.delete(ip);
+    return false;
+  }
+  return attempts.count >= 3;
+}
+
+function recordAttempt(ip, success) {
+  if (success) {
+    loginAttempts.delete(ip);
+    return;
+  }
+  const attempts = loginAttempts.get(ip) || {
+    count: 0,
+    lastAttempt: Date.now(),
+  };
+  attempts.count++;
+  attempts.lastAttempt = Date.now();
+  loginAttempts.set(ip, attempts);
+}
+
 // Auth endpoint
 app.post("/auth", (req, res) => {
+  const ip = req.ip || "unknown";
+
+  if (checkBruteForce(ip)) {
+    return res
+      .status(429)
+      .json({ error: "Too many attempts. Try again in 15 minutes." });
+  }
+
   const { password } = req.body;
   if (password === SITE_PASSWORD) {
+    recordAttempt(ip, true);
     res.setHeader(
       "Set-Cookie",
       `vv-auth=${SITE_PASSWORD}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000`,
     );
     res.json({ success: true });
   } else {
+    recordAttempt(ip, false);
     res.status(401).json({ error: "Wrong password" });
   }
 });
