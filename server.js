@@ -74,17 +74,42 @@ app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// ── Brute Force Protection ──────────────────────────────────
+// ── Brute Force Protection (مع تضاعف وقت الحظر) ────────────
 const loginAttempts = new Map();
 
 function checkBruteForce(ip) {
   const now = Date.now();
-  const attempts = loginAttempts.get(ip) || { count: 0, lastAttempt: now };
-  if (now - attempts.lastAttempt > 15 * 60 * 1000) {
-    loginAttempts.delete(ip);
-    return false;
+  const data = loginAttempts.get(ip);
+  if (!data) return false;
+
+  // حساب مدة الحظر بناءً على عدد المرات المحظورة
+  const blockDuration = Math.min(
+    data.blockCount * 15 * 60 * 1000,
+    24 * 60 * 60 * 1000,
+  );
+
+  if (data.blocked) {
+    if (now - data.blockedAt < blockDuration) {
+      // لازال محظور — نرجع وقت الانتهاء
+      data.remainingMs = blockDuration - (now - data.blockedAt);
+      return true;
+    } else {
+      // انتهى الحظر — نصفر المحاولات بس نحتفظ بعدد المرات
+      data.count = 0;
+      data.blocked = false;
+    }
   }
-  return attempts.count >= 3;
+  return false;
+}
+
+function getRemainingTime(ip) {
+  const data = loginAttempts.get(ip);
+  if (!data || !data.blocked) return 0;
+  const blockDuration = Math.min(
+    data.blockCount * 15 * 60 * 1000,
+    24 * 60 * 60 * 1000,
+  );
+  return Math.max(0, blockDuration - (Date.now() - data.blockedAt));
 }
 
 function recordAttempt(ip, success) {
@@ -92,13 +117,24 @@ function recordAttempt(ip, success) {
     loginAttempts.delete(ip);
     return;
   }
-  const attempts = loginAttempts.get(ip) || {
+  const data = loginAttempts.get(ip) || {
     count: 0,
-    lastAttempt: Date.now(),
+    blockCount: 0,
+    blocked: false,
   };
-  attempts.count++;
-  attempts.lastAttempt = Date.now();
-  loginAttempts.set(ip, attempts);
+  data.count++;
+
+  if (data.count >= 3) {
+    data.blocked = true;
+    data.blockedAt = Date.now();
+    data.blockCount++;
+    data.count = 0;
+    console.log(
+      `IP ${ip} blocked. Block #${data.blockCount} — duration: ${data.blockCount * 15} min`,
+    );
+  }
+
+  loginAttempts.set(ip, data);
 }
 
 // Auth endpoint
@@ -106,9 +142,12 @@ app.post("/auth", (req, res) => {
   const ip = req.ip || "unknown";
 
   if (checkBruteForce(ip)) {
-    return res
-      .status(429)
-      .json({ error: "Too many attempts. Try again in 15 minutes." });
+    const remaining = getRemainingTime(ip);
+    const minutes = Math.ceil(remaining / 60000);
+    return res.status(429).json({
+      error: `Too many attempts. Try again in ${minutes} minutes.`,
+      remainingMs: remaining,
+    });
   }
 
   const { password } = req.body;
