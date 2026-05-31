@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VideoVault — Page Not Found</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+      .page-404 {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        position: relative;
+        z-index: 1;
+      }
+      .err-glitch {
+        font-family: "Syne", sans-serif;
+        font-size: clamp(6rem, 20vw, 14rem);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.05em;
+        background: linear-gradient(135deg, #7b6eff, #00e5d4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        position: relative;
+        animation: glitch 4s infinite;
+        margin-bottom: 8px;
+      }
+      .err-glitch::before,
+      .err-glitch::after {
+        content: "404";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: inherit;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .err-glitch::before {
+        animation: glitchTop 4s infinite;
+        clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+        transform: translateX(-3px);
+        opacity: 0.7;
+        filter: hue-rotate(90deg);
+      }
+      .err-glitch::after {
+        animation: glitchBot 4s infinite;
+        clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+        transform: translateX(3px);
+        opacity: 0.7;
+        filter: hue-rotate(-90deg);
+      }
+      @keyframes glitch {
+        0%,
+        90%,
+        100% {
+          transform: none;
+        }
+        92% {
+          transform: skewX(-2deg);
+        }
+        94% {
+          transform: skewX(2deg);
+        }
+        96% {
+          transform: skewX(-1deg);
+        }
+      }
+      @keyframes glitchTop {
+        0%,
+        90%,
+        100% {
+          transform: translateX(-3px);
+        }
+        92% {
+          transform: translateX(3px);
+        }
+        94% {
+          transform: translateX(-5px);
+        }
+      }
+      @keyframes glitchBot {
+        0%,
+        90%,
+        100% {
+          transform: translateX(3px);
+        }
+        92% {
+          transform: translateX(-3px);
+        }
+        94% {
+          transform: translateX(5px);
+        }
+      }
+
+      .err-title {
+        font-family: "Syne", sans-serif;
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #eef2ff;
+      }
+      .err-sub {
+        font-size: 0.95rem;
+        color: #8892b0;
+        max-width: 380px;
+        margin: 0 auto 36px;
+        line-height: 1.6;
+      }
+      .err-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .err-btn-home {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #7b6eff, #5b9eff);
+        color: white;
+        padding: 14px 28px;
+        border-radius: 999px;
+        font-family: "DM Sans", sans-serif;
+        font-weight: 600;
+        font-size: 0.92rem;
+        text-decoration: none;
+        box-shadow: 0 6px 28px rgba(123, 110, 255, 0.4);
+        transition: all 0.2s;
+      }
+      .err-btn-home:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 36px rgba(123, 110, 255, 0.55);
+      }
+      .err-btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #8892b0;
+        padding: 13px 24px;
+        border-radius: 999px;
+        font-family: "DM Sans", sans-serif;
+        font-weight: 500;
+        font-size: 0.9rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .err-btn-back:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #eef2ff;
+      }
+
+      /* Floating video icons */
+      .floating-icons {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .fi-item {
+        position: absolute;
+        font-size: 1.8rem;
+        opacity: 0.06;
+        animation: floatIcon linear infinite;
+      }
+      @keyframes floatIcon {
+        from {
+          transform: translateY(100vh) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 0.06;
+        }
+        90% {
+          opacity: 0.06;
+        }
+        to {
+          transform: translateY(-100px) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      /* Scanline effect */
+      .err-glitch-wrap {
+        position: relative;
+        display: inline-block;
+      }
+      .err-glitch-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.05) 2px,
+          rgba(0, 0, 0, 0.05) 4px
+        );
+        pointer-events: none;
+      }
+
+      .err-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: 1.15rem;
+        margin-bottom: 48px;
+        text-decoration: none;
+        color: #eef2ff;
+      }
+      .err-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #7b6eff, #5b9eff);
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        font-size: 0.78rem;
+        color: white;
+        box-shadow: 0 4px 16px rgba(123, 110, 255, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Floating icons background -->
+    <div class="floating-icons" id="floatingIcons"></div>
+
+    <div class="page-404">
+      <a href="/" class="err-logo">
+        <span class="err-logo-icon"><i class="fa-solid fa-bolt"></i></span>
+        VideoVault
+      </a>
+
+      <div class="err-glitch-wrap">
+        <div class="err-glitch">404</div>
+      </div>
+
+      <h1 class="err-title">Page Not Found</h1>
+      <p class="err-sub">
+        Looks like this page got lost in the download queue. Let's get you back
+        on track.
+      </p>
+
+      <div class="err-actions">
+        <a href="/" class="err-btn-home">
+          <i class="fa-solid fa-house"></i> Back to Home
+        </a>
+        <a onclick="history.back()" class="err-btn-back">
+          <i class="fa-solid fa-arrow-left"></i> Go Back
+        </a>
+      </div>
+    </div>
+
+    <script>
+      // Spawn floating icons
+      const icons = [
+        "fa-youtube",
+        "fa-tiktok",
+        "fa-x-twitter",
+        "fa-film",
+        "fa-music",
+        "fa-download",
+        "fa-bolt",
+        "fa-video",
+      ];
+      const container = document.getElementById("floatingIcons");
+      for (let i = 0; i < 18; i++) {
+        const el = document.createElement("i");
+        el.className = `${i % 3 === 0 ? "fab" : "fa-solid"} ${icons[i % icons.length]} fi-item`;
+        el.style.left = Math.random() * 100 + "vw";
+        el.style.animationDuration = 8 + Math.random() * 12 + "s";
+        el.style.animationDelay = Math.random() * 10 + "s";
+        el.style.fontSize = 1.2 + Math.random() * 2 + "rem";
+        container.appendChild(el);
+      }
+    </script>
+  </body>
+</html>

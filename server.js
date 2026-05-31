@@ -43,7 +43,7 @@ const limiter = rateLimit({
 app.use("/api/", limiter);
 
 // ── Password Protection ─────────────────────────────────────
-const SITE_PASSWORD = process.env.SITE_PASSWORD || "FdrhDfC@123#";
+const SITE_PASSWORD = process.env.SITE_PASSWORD || "videovault2025";
 
 // Simple cookie parser (must come before auth middleware)
 app.use((req, res, next) => {
@@ -104,9 +104,15 @@ app.get("/admin", (req, res) => {
   }
 });
 
-// ── Catch-all: Serve Frontend ────────────────────────────────
+// ── Catch-all: Serve Frontend or 404 ────────────────────────
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  // Check if it's an HTML page request
+  const accept = req.headers.accept || "";
+  if (accept.includes("text/html")) {
+    res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
+  } else {
+    res.status(404).json({ error: "Not found" });
+  }
 });
 
 // ── Error Handler ────────────────────────────────────────────
