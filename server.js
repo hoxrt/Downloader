@@ -26,6 +26,7 @@ app.use(
 );
 
 app.use(cors());
+app.set("trust proxy", 1); // مطلوب لـ Railway و reverse proxies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
