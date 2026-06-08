@@ -1721,6 +1721,17 @@ img {
   .nav__logo {
     font-size: 1.05rem;
   }
+  /* إخفاء زر Download في الجوال لتوفير مساحة */
+  .nav__right .btn--primary {
+    display: none;
+  }
+  /* تصغير أزرار النافبار */
+  .pwa-btn {
+    display: none !important;
+  }
+  .nav__right {
+    gap: 6px;
+  }
   .hero {
     padding-top: 96px;
     padding-bottom: 36px;
