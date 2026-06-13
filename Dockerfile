@@ -5,9 +5,15 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     ffmpeg \
+    curl \
+    unzip \
     --no-install-recommends && \
-    pip3 install yt-dlp --break-system-packages && \
+    pip3 install -U --pre yt-dlp[default] --break-system-packages && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Deno (used by yt-dlp for YouTube JS challenge solving)
+RUN curl -fsSL https://deno.land/install.sh | sh
+ENV PATH="/root/.deno/bin:${PATH}"
 
 WORKDIR /app
 
