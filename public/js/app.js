@@ -584,6 +584,9 @@ function closeDlModal() {
   // Keep bubble visible if still downloading
   if (!dlIsActive) {
     document.getElementById("dlBubble").classList.remove("active");
+  } else {
+    // Show pulse dot to indicate background activity
+    document.getElementById("dlBubblePulse")?.classList.add("visible");
   }
 }
 
@@ -593,10 +596,13 @@ function reopenDlModal() {
     `Downloading ${dlCurrentLabel}`;
   setDlProgress(dlCurrentPct, dlCurrentStatus);
   document.getElementById("dlOverlay").classList.add("visible");
+  // Hide pulse dot once viewed
+  document.getElementById("dlBubblePulse")?.classList.remove("visible");
 }
 
 function finishDlBubble() {
   dlIsActive = false;
+  document.getElementById("dlBubblePulse")?.classList.remove("visible");
   // Show green done state on bubble
   const btn = document.getElementById("dlBubbleBtn");
   btn.classList.add("done");
@@ -1315,4 +1321,78 @@ function lightenHex(hex, percent) {
   handle.addEventListener("touchstart", onStart, { passive: true });
   handle.addEventListener("touchmove", onMove, { passive: true });
   handle.addEventListener("touchend", onEnd);
+})();
+
+/* ════════════════════════════════════════
+   LIVE STATS COUNTER
+════════════════════════════════════════ */
+(async function initLiveStats() {
+  const el = document.getElementById("liveStatsCount");
+  const wrapper = document.getElementById("liveStats");
+  if (!el || !wrapper) return;
+
+  try {
+    const res = await fetch(`${API}/public-stats`);
+    if (!res.ok) throw new Error("Failed");
+    const data = await res.json();
+    const target = data.totalDownloads || 0;
+
+    if (target === 0) {
+      wrapper.style.display = "none";
+      return;
+    }
+
+    // Animate count-up using IntersectionObserver to trigger on view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            animateCount(el, 0, target, 1400);
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(wrapper);
+  } catch {
+    wrapper.style.display = "none";
+  }
+})();
+
+function animateCount(el, start, end, duration) {
+  const startTime = performance.now();
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    // Ease-out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const value = Math.floor(start + (end - start) * eased);
+    el.textContent = value.toLocaleString();
+    if (progress < 1) requestAnimationFrame(tick);
+    else el.textContent = end.toLocaleString();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ════════════════════════════════════════
+   PAGE TRANSITION (fade out on internal nav)
+════════════════════════════════════════ */
+(function initPageTransitions() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  document.querySelectorAll('a[href^="/"]').forEach((link) => {
+    link.addEventListener("click", (e) => {
+      const href = link.getAttribute("href");
+      // Skip same-page anchors, new tabs, or modified clicks
+      if (!href || href.startsWith("#")) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || link.target === "_blank")
+        return;
+
+      e.preventDefault();
+      document.body.classList.add("page-leaving");
+      setTimeout(() => {
+        window.location.href = href;
+      }, 220);
+    });
+  });
 })();

@@ -7,7 +7,7 @@ const fs = require("fs");
 const os = require("os");
 const crypto = require("crypto");
 const { validateUrl, PLATFORMS } = require("../utils/urlValidator");
-const { recordDownload } = require("../utils/stats");
+const { recordDownload, getStats } = require("../utils/stats");
 
 const execAsync = promisify(exec);
 
@@ -370,6 +370,20 @@ router.get("/health", async (req, res) => {
     res
       .status(503)
       .json({ status: "error", message: "yt-dlp is not installed." });
+  }
+});
+
+// إحصائية عامة (بدون بيانات حساسة) لعرضها في الواجهة الرئيسية
+router.get("/public-stats", (req, res) => {
+  try {
+    const stats = getStats();
+    res.json({
+      totalDownloads: stats.totalDownloads || 0,
+      totalMP4: stats.totalMP4 || 0,
+      totalMP3: stats.totalMP3 || 0,
+    });
+  } catch {
+    res.json({ totalDownloads: 0, totalMP4: 0, totalMP3: 0 });
   }
 });
 

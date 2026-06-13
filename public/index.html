@@ -91,6 +91,10 @@
     <main>
       <!-- HERO -->
       <section class="hero" id="downloader">
+        <div class="hero-shape hero-shape--1"></div>
+        <div class="hero-shape hero-shape--2"></div>
+        <div class="hero-shape hero-shape--3"></div>
+        <div class="hero-shape hero-shape--4"></div>
         <div class="container">
           <div class="hero__badge">
             <span class="dot"></span> Free · No Sign-up · Instant
@@ -104,6 +108,15 @@
             YouTube, X (Twitter), TikTok — grab any video in full HD, 4K, or as
             MP3 audio. No limits, no watermarks.
           </p>
+
+          <!-- Live Stats Bar -->
+          <div class="live-stats" id="liveStats">
+            <i class="fa-solid fa-circle-check live-stats-icon"></i>
+            <span
+              ><span class="live-stats-count" id="liveStatsCount">0</span>
+              videos downloaded so far</span
+            >
+          </div>
 
           <!-- Downloader Card -->
           <div class="downloader-card">
@@ -697,6 +710,7 @@
       >
         <div id="dlBubbleRing"></div>
         <i class="fa-solid fa-download" id="dlBubbleIcon"></i>
+        <span class="pulse-dot" id="dlBubblePulse"></span>
       </button>
     </div>
 
