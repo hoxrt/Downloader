@@ -182,6 +182,11 @@ app.get("/admin", (req, res) => {
   }
 });
 
+// Download history page
+app.get("/history", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "history.html"));
+});
+
 // ── Catch-all: Serve Frontend or 404 ────────────────────────
 app.get("*", (req, res) => {
   // Check if it's an HTML page request

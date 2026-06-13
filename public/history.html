@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <title>VideoVault — History</title>
+    <meta name="description" content="Your download history on VideoVault." />
+    <meta name="theme-color" content="#6C63FF" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+      .hist-wrap {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 110px 24px 60px;
+        position: relative;
+        z-index: 1;
+      }
+      .hist-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 28px;
+        flex-wrap: wrap;
+      }
+      .hist-title {
+        font-family: "Syne", sans-serif;
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .hist-title i {
+        color: var(--accent);
+      }
+      .hist-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .hist-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        font-family: "DM Sans", sans-serif;
+        cursor: pointer;
+        text-decoration: none;
+        border: 1px solid var(--glass-border);
+        background: var(--glass-bg);
+        color: var(--text-2);
+        transition: all var(--t-fast);
+      }
+      .hist-btn:hover {
+        background: var(--glass-hover);
+        color: var(--text-1);
+      }
+      .hist-btn.danger:hover {
+        color: var(--error);
+        border-color: rgba(255, 107, 138, 0.3);
+      }
+      .hist-btn.primary {
+        background: var(--grad-main);
+        color: white;
+        border: none;
+        box-shadow: 0 6px 20px var(--accent-glow);
+      }
+      .hist-btn.primary:hover {
+        transform: translateY(-1px);
+      }
+
+      .hist-search {
+        position: relative;
+        margin-bottom: 24px;
+      }
+      .hist-search input {
+        width: 100%;
+        background: var(--glass-bg);
+        border: 1.5px solid var(--glass-border);
+        border-radius: 999px;
+        padding: 13px 44px 13px 44px;
+        color: var(--text-1);
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.9rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+      .hist-search input:focus {
+        border-color: var(--accent);
+        background: var(--accent-sub);
+        box-shadow: 0 0 0 3px var(--accent-sub);
+      }
+      .hist-search i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-3);
+        font-size: 0.85rem;
+      }
+
+      .hist-filters {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .hist-filter {
+        padding: 7px 16px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        color: var(--text-2);
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: "DM Sans", sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .hist-filter:hover {
+        background: var(--glass-hover);
+        color: var(--text-1);
+      }
+      .hist-filter.active {
+        background: var(--accent-sub);
+        border-color: rgba(123, 110, 255, 0.35);
+        color: var(--accent);
+      }
+
+      .hist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      .hist-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        transition: all 0.25s;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+      }
+      .hist-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(123, 110, 255, 0.3);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      }
+      .hist-thumb {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background-size: cover;
+        background-position: center;
+        background-color: var(--bg-surface);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .hist-thumb.no-thumb i {
+        font-size: 2rem;
+        color: var(--text-3);
+        opacity: 0.4;
+      }
+      .hist-thumb-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(6px);
+        border-radius: 8px;
+        padding: 4px 9px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .hist-thumb-badge.youtube i {
+        color: #ff4444;
+      }
+      .hist-thumb-badge.twitter i {
+        color: #fff;
+      }
+      .hist-thumb-badge.tiktok i {
+        color: #00e5d4;
+      }
+      .hist-duration {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 6px;
+        padding: 2px 7px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: white;
+      }
+      .hist-info {
+        padding: 14px 16px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .hist-card-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-1);
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .hist-card-url {
+        font-size: 0.72rem;
+        color: var(--text-3);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .hist-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 4px;
+      }
+      .hist-time {
+        font-size: 0.7rem;
+        color: var(--text-3);
+      }
+      .hist-remove {
+        background: none;
+        border: none;
+        color: var(--text-3);
+        cursor: pointer;
+        font-size: 0.8rem;
+        padding: 4px;
+        border-radius: 6px;
+        transition: all 0.15s;
+      }
+      .hist-remove:hover {
+        color: var(--error);
+        background: rgba(255, 107, 138, 0.1);
+      }
+
+      .hist-empty {
+        text-align: center;
+        padding: 80px 24px;
+        color: var(--text-3);
+      }
+      .hist-empty i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        display: block;
+        opacity: 0.35;
+      }
+      .hist-empty p {
+        font-size: 0.95rem;
+        margin-bottom: 20px;
+      }
+
+      @media (max-width: 600px) {
+        .hist-wrap {
+          padding: 96px 16px 40px;
+        }
+        .hist-title {
+          font-size: 1.4rem;
+        }
+        .hist-grid {
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 10px;
+        }
+        .hist-info {
+          padding: 10px 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav class="nav">
+      <div class="container">
+        <div class="nav__inner">
+          <a href="/" class="nav__logo">
+            <span class="nav__logo-icon"><i class="fa-solid fa-bolt"></i></span>
+            VideoVault
+          </a>
+          <div class="nav__right">
+            <button class="theme-toggle" id="themeToggle">
+              <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+            <a href="/" class="btn btn--primary">
+              <i class="fa-solid fa-arrow-left"></i> Back
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <div class="hist-wrap">
+        <div class="hist-header">
+          <h1 class="hist-title">
+            <i class="fa-solid fa-clock-rotate-left"></i> Download History
+          </h1>
+          <div class="hist-actions">
+            <button class="hist-btn danger" onclick="clearAllHistory()">
+              <i class="fa-solid fa-trash"></i> Clear All
+            </button>
+            <a href="/" class="hist-btn primary">
+              <i class="fa-solid fa-download"></i> New Download
+            </a>
+          </div>
+        </div>
+
+        <div class="hist-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input
+            type="text"
+            id="histSearch"
+            placeholder="Search history by title or URL…"
+          />
+        </div>
+
+        <div class="hist-filters">
+          <button class="hist-filter active" data-filter="all">
+            <i class="fa-solid fa-layer-group"></i> All
+          </button>
+          <button class="hist-filter" data-filter="youtube">
+            <i class="fab fa-youtube"></i> YouTube
+          </button>
+          <button class="hist-filter" data-filter="twitter">
+            <i class="fab fa-x-twitter"></i> X / Twitter
+          </button>
+          <button class="hist-filter" data-filter="tiktok">
+            <i class="fab fa-tiktok"></i> TikTok
+          </button>
+        </div>
+
+        <div class="hist-grid" id="histGrid"></div>
+
+        <div class="hist-empty" id="histEmpty" style="display: none">
+          <i class="fa-solid fa-inbox"></i>
+          <p>
+            No download history yet.<br />Start downloading videos and they'll
+            show up here.
+          </p>
+          <a href="/" class="hist-btn primary">
+            <i class="fa-solid fa-download"></i> Go Download Something
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+      /* ── Theme toggle (shared logic) ── */
+      function setTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        localStorage.setItem("vv-theme", theme);
+        const icon = document.getElementById("themeIcon");
+        if (icon)
+          icon.className =
+            theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+      }
+      (function initTheme() {
+        const saved = localStorage.getItem("vv-theme") || "dark";
+        setTheme(saved);
+        document
+          .getElementById("themeToggle")
+          ?.addEventListener("click", () => {
+            const current = document.documentElement.getAttribute("data-theme");
+            setTheme(current === "dark" ? "light" : "dark");
+          });
+      })();
+
+      /* ── Restore accent color ── */
+      (function initAccent() {
+        const c1 = localStorage.getItem("vv-accent-1");
+        const c2 = localStorage.getItem("vv-accent-2");
+        if (c1 && c2) {
+          const root = document.documentElement;
+          const hexToRgb = (h) => {
+            h = h.replace("#", "");
+            return `${parseInt(h.substr(0, 2), 16)},${parseInt(h.substr(2, 4), 16)},${parseInt(h.substr(4, 6), 16)}`;
+          };
+          root.style.setProperty("--accent", c1);
+          root.style.setProperty("--accent2", c2);
+          root.style.setProperty("--accent-glow", `rgba(${hexToRgb(c1)},0.4)`);
+          root.style.setProperty("--accent-sub", `rgba(${hexToRgb(c1)},0.13)`);
+          root.style.setProperty("--text-accent", c1);
+          root.style.setProperty(
+            "--grad-main",
+            `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`,
+          );
+          root.style.setProperty(
+            "--grad-teal",
+            `linear-gradient(135deg, ${c2} 0%, ${c1} 100%)`,
+          );
+          root.style.setProperty("--mesh-c1", hexToRgb(c1));
+          root.style.setProperty("--mesh-c2", hexToRgb(c2));
+          root.style.setProperty("--mesh-c3", hexToRgb(c2));
+        }
+      })();
+
+      /* ── History data ── */
+      function getHistory() {
+        try {
+          return JSON.parse(localStorage.getItem("vv-history") || "[]");
+        } catch {
+          return [];
+        }
+      }
+      function saveHistoryList(list) {
+        localStorage.setItem("vv-history", JSON.stringify(list));
+      }
+      function detectPlatform(url) {
+        if (url.includes("youtube") || url.includes("youtu.be"))
+          return "youtube";
+        if (url.includes("twitter") || url.includes("x.com")) return "twitter";
+        if (url.includes("tiktok")) return "tiktok";
+        return "unknown";
+      }
+      function platformMeta(p) {
+        switch (p) {
+          case "youtube":
+            return { icon: "fab fa-youtube", label: "YouTube", cls: "youtube" };
+          case "twitter":
+            return {
+              icon: "fab fa-x-twitter",
+              label: "X / Twitter",
+              cls: "twitter",
+            };
+          case "tiktok":
+            return { icon: "fab fa-tiktok", label: "TikTok", cls: "tiktok" };
+          default:
+            return { icon: "fa-solid fa-link", label: "Link", cls: "" };
+        }
+      }
+      function formatTimeAgo(ts) {
+        const diff = Math.floor((Date.now() - ts) / 1000);
+        if (diff < 60) return "Just now";
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+        return new Date(ts).toLocaleDateString();
+      }
+
+      let currentFilter = "all";
+      let currentSearch = "";
+
+      function renderHistoryGrid() {
+        const all = getHistory();
+        const grid = document.getElementById("histGrid");
+        const empty = document.getElementById("histEmpty");
+
+        let filtered = all;
+        if (currentFilter !== "all") {
+          filtered = filtered.filter(
+            (item) => detectPlatform(item.url) === currentFilter,
+          );
+        }
+        if (currentSearch.trim()) {
+          const q = currentSearch.toLowerCase();
+          filtered = filtered.filter(
+            (item) =>
+              (item.title || "").toLowerCase().includes(q) ||
+              item.url.toLowerCase().includes(q),
+          );
+        }
+
+        if (all.length === 0) {
+          grid.style.display = "none";
+          empty.style.display = "block";
+          document.querySelector(".hist-search").style.display = "none";
+          document.querySelector(".hist-filters").style.display = "none";
+          return;
+        }
+
+        document.querySelector(".hist-search").style.display = "";
+        document.querySelector(".hist-filters").style.display = "";
+
+        if (filtered.length === 0) {
+          grid.style.display = "none";
+          empty.style.display = "block";
+          empty.querySelector("i").className = "fa-solid fa-magnifying-glass";
+          empty.querySelector("p").textContent =
+            "No results match your search or filter.";
+          empty.querySelector("a").style.display = "none";
+          return;
+        }
+
+        empty.style.display = "none";
+        grid.style.display = "grid";
+
+        grid.innerHTML = filtered
+          .map((item, idx) => {
+            const realIndex = all.indexOf(item);
+            const meta = platformMeta(detectPlatform(item.url));
+            const title = item.title || item.url;
+            const thumbHtml = item.thumbnail
+              ? `<div class="hist-thumb" style="background-image:url('${item.thumbnail}')">`
+              : `<div class="hist-thumb no-thumb"><i class="${meta.icon}"></i>`;
+            const durationHtml = item.duration
+              ? `<div class="hist-duration">${item.duration}</div>`
+              : "";
+
+            return `<div class="hist-card" onclick="useFromHistory('${item.url.replace(/'/g, "\\'")}')">
+        ${thumbHtml}
+          <div class="hist-thumb-badge ${meta.cls}"><i class="${meta.icon}"></i> ${meta.label}</div>
+          ${durationHtml}
+        </div>
+        <div class="hist-info">
+          <div class="hist-card-title">${escapeHtml(title)}</div>
+          <div class="hist-card-url">${escapeHtml(item.url)}</div>
+          <div class="hist-card-footer">
+            <span class="hist-time">${formatTimeAgo(item.time)}</span>
+            <button class="hist-remove" onclick="event.stopPropagation(); removeHistoryItem(${realIndex})" title="Remove">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>`;
+          })
+          .join("");
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function useFromHistory(url) {
+        window.location.href = `/?url=${encodeURIComponent(url)}`;
+      }
+
+      function removeHistoryItem(index) {
+        const all = getHistory();
+        all.splice(index, 1);
+        saveHistoryList(all);
+        renderHistoryGrid();
+        showToast("info", "Removed", "Item removed from history.");
+      }
+
+      function clearAllHistory() {
+        if (!confirm("Clear all download history? This cannot be undone."))
+          return;
+        localStorage.removeItem("vv-history");
+        renderHistoryGrid();
+        showToast("success", "History Cleared", "All items have been removed.");
+      }
+
+      /* Filters */
+      document.querySelectorAll(".hist-filter").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".hist-filter")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentFilter = btn.dataset.filter;
+          renderHistoryGrid();
+        });
+      });
+
+      /* Search */
+      document.getElementById("histSearch").addEventListener("input", (e) => {
+        currentSearch = e.target.value;
+        renderHistoryGrid();
+      });
+
+      /* ── Minimal toast (standalone) ── */
+      function showToast(type, title, msg, dur = 3500) {
+        const container = document.getElementById("toastContainer");
+        const icons = {
+          success: "fa-circle-check",
+          error: "fa-circle-exclamation",
+          info: "fa-circle-info",
+        };
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+      <i class="fa-solid ${icons[type] || icons.info} toast-icon"></i>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-msg">${msg}</div>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+    `;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.classList.add("exiting");
+          setTimeout(() => toast.remove(), 300);
+        }, dur);
+      }
+
+      /* ── Init ── */
+      renderHistoryGrid();
+    </script>
+  </body>
+</html>

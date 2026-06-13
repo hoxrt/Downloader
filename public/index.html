@@ -62,6 +62,14 @@
             </button>
             <button
               class="theme-toggle"
+              id="colorToggle"
+              title="Change accent color"
+              onclick="toggleColorPicker()"
+            >
+              <i class="fa-solid fa-palette"></i>
+            </button>
+            <button
+              class="theme-toggle"
               id="cursorToggle"
               title="Toggle custom cursor"
               onclick="toggleCursor()"
@@ -153,9 +161,14 @@
                 <span class="history-title"
                   ><i class="fa-solid fa-clock-rotate-left"></i> Recent</span
                 >
-                <button class="history-clear" onclick="clearHistory()">
-                  Clear all
-                </button>
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <a href="/history" class="history-viewall"
+                    ><i class="fa-solid fa-list"></i> View All</a
+                  >
+                  <button class="history-clear" onclick="clearHistory()">
+                    Clear all
+                  </button>
+                </div>
               </div>
               <div class="history-list" id="historyList"></div>
             </div>
@@ -168,6 +181,34 @@
               Fetching video information…
             </p>
             <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+          </div>
+
+          <!-- Skeleton Loading -->
+          <div class="skeleton-card" id="skeletonCard">
+            <div class="skeleton-info">
+              <div class="skeleton skeleton-thumb"></div>
+              <div class="skeleton-meta">
+                <div
+                  class="skeleton skeleton-line skeleton-line--platform"
+                ></div>
+                <div class="skeleton skeleton-line skeleton-line--title"></div>
+                <div class="skeleton skeleton-line skeleton-line--title2"></div>
+                <div class="skeleton skeleton-line skeleton-line--stats"></div>
+              </div>
+            </div>
+            <div class="skeleton-options">
+              <div class="skeleton skeleton-line skeleton-line--section"></div>
+              <div class="skeleton-grid">
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+              </div>
+              <div class="skeleton skeleton-line skeleton-line--section"></div>
+              <div class="skeleton-grid">
+                <div class="skeleton skeleton-chip skeleton-chip--wide"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Result -->
@@ -449,6 +490,7 @@
     <!-- Download Progress Modal -->
     <div class="dl-overlay" id="dlOverlay">
       <div class="dl-modal">
+        <div class="dl-sheet-handle"></div>
         <div class="dl-icon-ring" id="dlIconRing">
           <i class="fa-solid fa-download"></i>
         </div>
@@ -539,6 +581,82 @@
       </div>
     </div>
 
+    <!-- Theme Color Picker -->
+    <div id="colorPickerPanel">
+      <div class="cpp-header">
+        <i class="fa-solid fa-palette"></i>
+        <span>Accent Color</span>
+        <button class="cpp-close" onclick="toggleColorPicker()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="cpp-swatches">
+        <button
+          class="cpp-swatch"
+          data-color="#7B6EFF"
+          data-color2="#5B9EFF"
+          style="background: linear-gradient(135deg, #7b6eff, #5b9eff)"
+          title="Violet (default)"
+        ></button>
+        <button
+          class="cpp-swatch"
+          data-color="#00E5D4"
+          data-color2="#5BFFEA"
+          style="background: linear-gradient(135deg, #00e5d4, #5bffea)"
+          title="Teal"
+        ></button>
+        <button
+          class="cpp-swatch"
+          data-color="#FF6B8A"
+          data-color2="#FFB830"
+          style="background: linear-gradient(135deg, #ff6b8a, #ffb830)"
+          title="Sunset"
+        ></button>
+        <button
+          class="cpp-swatch"
+          data-color="#22D3A0"
+          data-color2="#5BFFB0"
+          style="background: linear-gradient(135deg, #22d3a0, #5bffb0)"
+          title="Emerald"
+        ></button>
+        <button
+          class="cpp-swatch"
+          data-color="#5B9EFF"
+          data-color2="#7B6EFF"
+          style="background: linear-gradient(135deg, #5b9eff, #7b6eff)"
+          title="Sky"
+        ></button>
+        <button
+          class="cpp-swatch"
+          data-color="#FFB830"
+          data-color2="#FF6B8A"
+          style="background: linear-gradient(135deg, #ffb830, #ff6b8a)"
+          title="Amber"
+        ></button>
+        <button
+          class="cpp-swatch"
+          data-color="#FF6EC7"
+          data-color2="#7B6EFF"
+          style="background: linear-gradient(135deg, #ff6ec7, #7b6eff)"
+          title="Pink"
+        ></button>
+        <button
+          class="cpp-swatch"
+          data-color="#6EFFB0"
+          data-color2="#00E5D4"
+          style="background: linear-gradient(135deg, #6effb0, #00e5d4)"
+          title="Mint"
+        ></button>
+      </div>
+      <div class="cpp-custom">
+        <label for="cppCustomColor">Custom</label>
+        <input type="color" id="cppCustomColor" value="#7B6EFF" />
+      </div>
+      <button class="cpp-reset" onclick="resetAccentColor()">
+        <i class="fa-solid fa-rotate-left"></i> Reset to default
+      </button>
+    </div>
+
     <!-- Mini Player -->
     <div id="miniPlayer">
       <div class="mp-thumb" id="mpThumb" onclick="openMiniPreview()">
@@ -584,6 +702,151 @@
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <style>
+      /* THEME COLOR PICKER — isolated */
+      #colorPickerPanel {
+        position: fixed !important;
+        top: 64px !important;
+        right: 20px !important;
+        left: auto !important;
+        bottom: auto !important;
+        z-index: 99999 !important;
+        width: 260px;
+        background: var(--bg-elevated, #101825);
+        border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+        border-radius: 18px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+        padding: 16px;
+        opacity: 0;
+        transform: translateY(-12px) scale(0.95);
+        pointer-events: none;
+        transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      #colorPickerPanel.visible {
+        opacity: 1 !important;
+        transform: translateY(0) scale(1) !important;
+        pointer-events: all !important;
+      }
+      .cpp-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-1, #eef2ff);
+        margin-bottom: 14px;
+      }
+      .cpp-header i:first-child {
+        color: var(--accent, #7b6eff);
+      }
+      .cpp-close {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: var(--text-3, #445070);
+        cursor: pointer;
+        font-size: 0.85rem;
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        transition: all 0.15s;
+      }
+      .cpp-close:hover {
+        background: var(--glass-bg, rgba(255, 255, 255, 0.05));
+        color: var(--text-1, #eef2ff);
+      }
+      .cpp-swatches {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .cpp-swatch {
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 12px;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+      }
+      .cpp-swatch:hover {
+        transform: scale(1.08);
+      }
+      .cpp-swatch.active {
+        border-color: var(--text-1, #eef2ff);
+        box-shadow:
+          0 0 0 2px var(--bg-elevated, #101825),
+          0 0 0 4px var(--accent, #7b6eff);
+      }
+      .cpp-swatch.active::after {
+        content: "\\f00c";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: white;
+        font-size: 0.9rem;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+      }
+      .cpp-custom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: var(--glass-bg, rgba(255, 255, 255, 0.04));
+        border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+        border-radius: 12px;
+        margin-bottom: 10px;
+      }
+      .cpp-custom label {
+        font-size: 0.8rem;
+        color: var(--text-2, #8892b0);
+        font-weight: 500;
+      }
+      .cpp-custom input[type="color"] {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: none;
+        padding: 0;
+      }
+      .cpp-reset {
+        width: 100%;
+        padding: 10px;
+        background: var(--glass-bg, rgba(255, 255, 255, 0.04));
+        border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+        border-radius: 99px;
+        color: var(--text-2, #8892b0);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "DM Sans", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.15s;
+      }
+      .cpp-reset:hover {
+        background: var(--glass-hover, rgba(255, 255, 255, 0.07));
+        color: var(--text-1, #eef2ff);
+      }
+      @media (max-width: 480px) {
+        #colorPickerPanel {
+          right: 14px;
+          width: calc(100vw - 28px);
+          max-width: 300px;
+        }
+      }
+    </style>
 
     <!-- VideoVault App -->
     <script src="/js/app.js"></script>

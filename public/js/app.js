@@ -197,10 +197,17 @@ function getHistory() {
     return [];
   }
 }
-function saveHistory(url) {
+function saveHistory(url, data) {
   let h = getHistory().filter((i) => i.url !== url);
-  h.unshift({ url, time: Date.now() });
-  localStorage.setItem("vv-history", JSON.stringify(h.slice(0, 5)));
+  h.unshift({
+    url,
+    time: Date.now(),
+    title: data?.title || null,
+    thumbnail: data?.thumbnail || null,
+    platform: data?.platform?.name || null,
+    duration: data?.duration || null,
+  });
+  localStorage.setItem("vv-history", JSON.stringify(h.slice(0, 50)));
   renderHistory();
 }
 function clearHistory() {
@@ -208,7 +215,7 @@ function clearHistory() {
   renderHistory();
 }
 function renderHistory() {
-  const h = getHistory();
+  const h = getHistory().slice(0, 5);
   const section = document.getElementById("historySection");
   const list = document.getElementById("historyList");
   if (h.length === 0) {
@@ -322,7 +329,7 @@ async function fetchVideoInfo() {
     if (!res.ok) throw new Error(data.error || "Failed to fetch video info.");
 
     currentData = data;
-    saveHistory(url);
+    saveHistory(url, data);
     showResult(data);
     showToast("success", "Video Found!", `"${trunc(data.title, 42)}" ready.`);
   } catch (err) {
@@ -613,6 +620,7 @@ document.getElementById("dlOverlay").addEventListener("click", (e) => {
 ════════════════════════════════════════ */
 function showLoading(show) {
   document.getElementById("loadingCard").classList.toggle("visible", show);
+  document.getElementById("skeletonCard").classList.toggle("visible", show);
 }
 function setLoadingText(t) {
   document.getElementById("loadingText").textContent = t;
@@ -757,6 +765,9 @@ function openPreview() {
   video.src = `${API}/download?${params}`;
   video.load();
   overlay.classList.add("visible");
+
+  // Hide mini player while the preview is open to avoid overlap
+  document.getElementById("miniPlayer")?.classList.remove("visible");
 }
 
 function closePreview() {
@@ -765,6 +776,14 @@ function closePreview() {
   video.pause();
   video.src = "";
   overlay.classList.remove("visible");
+
+  // Restore mini player if the result section is out of view
+  const rs = document.getElementById("resultSection");
+  if (rs && currentData) {
+    const rect = rs.getBoundingClientRect();
+    const outOfView = rect.bottom < 0 || rect.top > window.innerHeight;
+    if (outOfView) showMiniPlayer(currentData);
+  }
 }
 
 // Show preview button after result loads
@@ -895,6 +914,22 @@ let cursorActive = false;
 let cursorHandlers = {};
 let rafId = null;
 
+let lastTrailTime = 0;
+function spawnTrailParticle(x, y) {
+  const now = Date.now();
+  if (now - lastTrailTime < 40) return; // throttle ~25fps
+  lastTrailTime = now;
+
+  const particle = document.createElement("div");
+  particle.className = "cursor-trail";
+  particle.style.left = x + "px";
+  particle.style.top = y + "px";
+  document.body.appendChild(particle);
+
+  // Remove after animation completes
+  setTimeout(() => particle.remove(), 700);
+}
+
 function initMagneticCursor() {
   if (cursorActive) return;
   cursorActive = true;
@@ -930,6 +965,9 @@ function initMagneticCursor() {
     ring.style.opacity = "1";
     dot.style.left = mouseX + "px";
     dot.style.top = mouseY + "px";
+
+    // Glowing trail particle
+    spawnTrailParticle(mouseX, mouseY);
 
     const magnetic = e.target.closest(
       "button, .btn, a, .feature-card, .platform-card",
@@ -998,6 +1036,7 @@ function destroyMagneticCursor() {
   document.getElementById("cursor-dot")?.remove();
   document.getElementById("cursor-ring")?.remove();
   document.getElementById("cursor-none-style")?.remove();
+  document.querySelectorAll(".cursor-trail").forEach((el) => el.remove());
 
   // Reset any magnetic transforms
   document
@@ -1047,3 +1086,233 @@ if (!window.matchMedia("(pointer: coarse)").matches) {
     if (saved) initMagneticCursor();
   });
 }
+
+/* ════════════════════════════════════════
+   THEME COLOR CUSTOMIZER
+════════════════════════════════════════ */
+
+// Convert hex color to RGB string "r,g,b"
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `${r},${g},${b}`;
+}
+
+// Apply an accent color pair to the whole site via CSS variables
+function applyAccentColor(color1, color2) {
+  const root = document.documentElement;
+  root.style.setProperty("--accent", color1);
+  root.style.setProperty("--accent2", color2);
+  root.style.setProperty("--accent-glow", `rgba(${hexToRgb(color1)},0.4)`);
+  root.style.setProperty("--accent-sub", `rgba(${hexToRgb(color1)},0.13)`);
+  root.style.setProperty("--text-accent", color1);
+  root.style.setProperty(
+    "--grad-main",
+    `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`,
+  );
+  root.style.setProperty(
+    "--grad-teal",
+    `linear-gradient(135deg, ${color2} 0%, ${color1} 100%)`,
+  );
+
+  // Animated mesh background follows the accent palette
+  root.style.setProperty("--mesh-c1", hexToRgb(color1));
+  root.style.setProperty("--mesh-c2", hexToRgb(color2));
+  root.style.setProperty("--mesh-c3", hexToRgb(color2));
+
+  // Save preference
+  localStorage.setItem("vv-accent-1", color1);
+  localStorage.setItem("vv-accent-2", color2);
+
+  // Update active swatch highlight
+  document.querySelectorAll(".cpp-swatch").forEach((sw) => {
+    sw.classList.toggle(
+      "active",
+      sw.dataset.color.toLowerCase() === color1.toLowerCase(),
+    );
+  });
+
+  // Sync custom color input
+  const customInput = document.getElementById("cppCustomColor");
+  if (customInput) customInput.value = color1;
+}
+
+// Reset to default violet theme
+function resetAccentColor() {
+  applyAccentColor("#7B6EFF", "#5B9EFF");
+  localStorage.removeItem("vv-accent-1");
+  localStorage.removeItem("vv-accent-2");
+  showToast("info", "Theme Reset", "Accent color restored to default.");
+}
+
+// Toggle the color picker panel
+function toggleColorPicker() {
+  const panel = document.getElementById("colorPickerPanel");
+  if (!panel) return;
+  panel.classList.toggle("visible");
+}
+
+// Close panel when clicking outside
+document.addEventListener("click", (e) => {
+  const panel = document.getElementById("colorPickerPanel");
+  const btn = document.getElementById("colorToggle");
+  if (!panel || !panel.classList.contains("visible")) return;
+  if (!panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.classList.remove("visible");
+  }
+});
+
+// Init: restore saved accent color + wire up swatches
+document.addEventListener("DOMContentLoaded", () => {
+  const savedColor1 = localStorage.getItem("vv-accent-1");
+  const savedColor2 = localStorage.getItem("vv-accent-2");
+  if (savedColor1 && savedColor2) {
+    applyAccentColor(savedColor1, savedColor2);
+  } else {
+    // mark default swatch active
+    document
+      .querySelector('.cpp-swatch[data-color="#7B6EFF"]')
+      ?.classList.add("active");
+  }
+
+  // Swatch clicks
+  document.querySelectorAll(".cpp-swatch").forEach((sw) => {
+    sw.addEventListener("click", () => {
+      applyAccentColor(sw.dataset.color, sw.dataset.color2);
+      showToast("success", "Theme Updated", "Accent color changed!");
+    });
+  });
+
+  // Custom color picker
+  const customInput = document.getElementById("cppCustomColor");
+  if (customInput) {
+    customInput.addEventListener("input", (e) => {
+      const color1 = e.target.value;
+      // Generate a complementary-ish second color by shifting hue slightly (simple lighten)
+      const color2 = lightenHex(color1, 25);
+      applyAccentColor(color1, color2);
+    });
+    customInput.addEventListener("change", () => {
+      showToast(
+        "success",
+        "Custom Color Applied",
+        "Your accent color has been saved.",
+      );
+    });
+  }
+});
+
+// Lighten a hex color by a percentage (simple helper for custom color second tone)
+function lightenHex(hex, percent) {
+  const h = hex.replace("#", "");
+  let r = parseInt(h.substring(0, 2), 16);
+  let g = parseInt(h.substring(2, 4), 16);
+  let b = parseInt(h.substring(4, 6), 16);
+  r = Math.min(255, Math.round(r + (255 - r) * (percent / 100)));
+  g = Math.min(255, Math.round(g + (255 - g) * (percent / 100)));
+  b = Math.min(255, Math.round(b + (255 - b) * (percent / 100)));
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
+/* ════════════════════════════════════════
+   3D TILT EFFECT (feature & platform cards)
+════════════════════════════════════════ */
+(function initTiltEffect() {
+  // Skip on touch devices or reduced motion preference
+  if (window.matchMedia("(pointer: coarse)").matches) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const cards = document.querySelectorAll(".feature-card, .platform-card");
+  const MAX_TILT = 7; // degrees
+
+  cards.forEach((card) => {
+    // Inject glow overlay element
+    const glow = document.createElement("div");
+    glow.className = "tilt-glow";
+    card.appendChild(glow);
+
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Normalize to -1..1
+      const px = (x / rect.width) * 2 - 1;
+      const py = (y / rect.height) * 2 - 1;
+
+      const rotateX = (-py * MAX_TILT).toFixed(2);
+      const rotateY = (px * MAX_TILT).toFixed(2);
+
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+
+      // Update glow position
+      const gx = (x / rect.width) * 100;
+      const gy = (y / rect.height) * 100;
+      card.style.setProperty("--gx", `${gx}%`);
+      card.style.setProperty("--gy", `${gy}%`);
+    });
+
+    card.addEventListener("mouseleave", () => {
+      card.style.transform = "";
+      card.style.transition = "transform .4s cubic-bezier(.34,1.56,.64,1)";
+      setTimeout(() => {
+        card.style.transition = "";
+      }, 400);
+    });
+
+    card.addEventListener("mouseenter", () => {
+      card.style.transition = "transform .15s ease-out";
+    });
+  });
+})();
+
+/* ════════════════════════════════════════
+   BOTTOM SHEET — SWIPE DOWN TO DISMISS (mobile)
+════════════════════════════════════════ */
+(function initSheetSwipe() {
+  if (!window.matchMedia("(pointer: coarse)").matches) return;
+
+  const overlay = document.getElementById("dlOverlay");
+  const sheet = overlay?.querySelector(".dl-modal");
+  const handle = overlay?.querySelector(".dl-sheet-handle");
+  if (!overlay || !sheet || !handle) return;
+
+  let startY = 0;
+  let currentY = 0;
+  let dragging = false;
+
+  function onStart(e) {
+    dragging = true;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    sheet.style.transition = "none";
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    currentY = e.touches ? e.touches[0].clientY : e.clientY;
+    const delta = Math.max(0, currentY - startY);
+    sheet.style.transform = `translateY(${delta}px)`;
+  }
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = "";
+    const delta = Math.max(0, currentY - startY);
+    if (delta > 100) {
+      // Swiped down enough — close
+      sheet.style.transform = "translateY(100%)";
+      setTimeout(() => {
+        closeDlModal();
+        sheet.style.transform = "";
+      }, 200);
+    } else {
+      // Snap back
+      sheet.style.transform = "";
+    }
+  }
+
+  handle.addEventListener("touchstart", onStart, { passive: true });
+  handle.addEventListener("touchmove", onMove, { passive: true });
+  handle.addEventListener("touchend", onEnd);
+})();
