@@ -533,6 +533,52 @@ img {
   transform: translateY(-2px);
 }
 
+/* Quality/audio selection feedback */
+.btn--quality.selected,
+.btn--audio.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-sub);
+}
+.btn--audio.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(255, 184, 48, 0.18);
+}
+.btn--quality.pulse,
+.btn--audio.pulse {
+  animation: qualityPulse 0.6s ease-out;
+}
+@keyframes qualityPulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgba(123, 110, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(123, 110, 255, 0);
+  }
+}
+.btn--audio.pulse {
+  animation: qualityPulseGold 0.6s ease-out;
+}
+@keyframes qualityPulseGold {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 184, 48, 0.45);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgba(255, 184, 48, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 184, 48, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn--quality.pulse,
+  .btn--audio.pulse {
+    animation: none;
+  }
+}
+
 .btn--copy {
   width: 36px;
   height: 36px;
@@ -1445,6 +1491,82 @@ img {
 .dl-icon-ring i {
   font-size: 1.6rem;
   color: var(--accent);
+  transition:
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* Success celebration state */
+.dl-icon-ring.success {
+  border-color: var(--success);
+  animation: successRingPulse 0.6s ease-out;
+}
+.dl-icon-ring.success::before {
+  background: conic-gradient(var(--success) 100%, transparent 0%);
+}
+.dl-icon-ring.success i {
+  color: var(--success);
+  animation: successIconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes successRingPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 160, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(34, 211, 160, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 160, 0);
+  }
+}
+@keyframes successIconPop {
+  0% {
+    transform: scale(0) rotate(-45deg);
+  }
+  60% {
+    transform: scale(1.25) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+/* Confetti-style burst particles around the success ring */
+.success-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.success-burst span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  opacity: 0;
+  animation: burstParticle 0.7s ease-out forwards;
+}
+@keyframes burstParticle {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) translate(0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) translate(var(--bx), var(--by));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dl-icon-ring.success {
+    animation: none;
+  }
+  .dl-icon-ring.success i {
+    animation: none;
+  }
+  .success-burst {
+    display: none;
+  }
 }
 .dl-modal h3 {
   font-size: 1.05rem;
@@ -1667,6 +1789,65 @@ img {
   place-items: center;
   font-size: 1.15rem;
   margin-bottom: 16px;
+  transform: scale(0) rotate(-30deg);
+  opacity: 0;
+}
+.reveal-stagger.in-view .feature-icon,
+.reveal-stagger.in-view .platform-logo {
+  animation:
+    iconPopFloat 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    iconFloat 5s ease-in-out 0.6s infinite;
+}
+.reveal-stagger.in-view > *:nth-child(1) .feature-icon,
+.reveal-stagger.in-view > *:nth-child(1) .platform-logo {
+  animation-delay: 120ms, 720ms;
+}
+.reveal-stagger.in-view > *:nth-child(2) .feature-icon,
+.reveal-stagger.in-view > *:nth-child(2) .platform-logo {
+  animation-delay: 195ms, 795ms;
+}
+.reveal-stagger.in-view > *:nth-child(3) .feature-icon,
+.reveal-stagger.in-view > *:nth-child(3) .platform-logo {
+  animation-delay: 270ms, 870ms;
+}
+.reveal-stagger.in-view > *:nth-child(4) .feature-icon,
+.reveal-stagger.in-view > *:nth-child(4) .platform-logo {
+  animation-delay: 345ms, 945ms;
+}
+.reveal-stagger.in-view > *:nth-child(5) .feature-icon,
+.reveal-stagger.in-view > *:nth-child(5) .platform-logo {
+  animation-delay: 420ms, 1020ms;
+}
+.reveal-stagger.in-view > *:nth-child(6) .feature-icon,
+.reveal-stagger.in-view > *:nth-child(6) .platform-logo {
+  animation-delay: 495ms, 1095ms;
+}
+@keyframes iconPopFloat {
+  from {
+    transform: scale(0) rotate(-30deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+@keyframes iconFloat {
+  0%,
+  100% {
+    transform: scale(1) translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: scale(1) translateY(-4px) rotate(-3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feature-icon,
+  .platform-logo {
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
+  }
 }
 .fi-purple {
   background: rgba(123, 110, 255, 0.15);
@@ -1735,6 +1916,8 @@ img {
   font-size: 2.8rem;
   margin-bottom: 14px;
   display: block;
+  transform: scale(0) rotate(-30deg);
+  opacity: 0;
 }
 .platform-card:nth-child(1) .platform-logo {
   color: #ff0000;

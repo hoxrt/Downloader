@@ -373,19 +373,27 @@ function showResult(data) {
       const btn = document.createElement("button");
       btn.className = "btn btn--quality";
       btn.innerHTML = `<i class="fa-solid fa-download"></i><span class="q-badge ${bc}">${q.quality}</span>MP4${sz}`;
-      btn.onclick = () => triggerDownload(q.formatId, "video", q.quality);
+      btn.onclick = (e) => {
+        pulseQualityButton(e.currentTarget);
+        triggerDownload(q.formatId, "video", q.quality);
+      };
       grid.appendChild(btn);
     });
   } else {
     const btn = document.createElement("button");
     btn.className = "btn btn--quality";
     btn.innerHTML = `<i class="fa-solid fa-download"></i> Best Quality · MP4`;
-    btn.onclick = () => triggerDownload("best", "video", "Best");
+    btn.onclick = (e) => {
+      pulseQualityButton(e.currentTarget);
+      triggerDownload("best", "video", "Best");
+    };
     grid.appendChild(btn);
   }
 
-  document.getElementById("audioBtn").onclick = () =>
+  document.getElementById("audioBtn").onclick = (e) => {
+    pulseQualityButton(e.currentTarget);
     triggerDownload(null, "audio");
+  };
   document.getElementById("resultSection").classList.add("visible");
   if (window.innerWidth < 768) {
     setTimeout(
@@ -396,6 +404,23 @@ function showResult(data) {
       100,
     );
   }
+}
+
+/* Visual pulse/selection feedback when a quality/audio button is clicked */
+function pulseQualityButton(btn) {
+  if (!btn) return;
+  // Clear selection from siblings
+  const grid = btn.closest(".quality-grid, .download-options");
+  if (grid) {
+    grid
+      .querySelectorAll(".btn--quality.selected, .btn--audio.selected")
+      .forEach((b) => b.classList.remove("selected"));
+  }
+  btn.classList.add("selected");
+  // Re-trigger pulse animation even if already selected
+  btn.classList.remove("pulse");
+  requestAnimationFrame(() => btn.classList.add("pulse"));
+  setTimeout(() => btn.classList.remove("pulse"), 650);
 }
 
 function getBadgeClass(q) {
@@ -514,6 +539,7 @@ async function triggerDownload(formatId, type, qualityLabel) {
       URL.revokeObjectURL(blobUrl);
 
       setDlProgress(100, "Complete!");
+      triggerSuccessAnimation();
       setTimeout(() => {
         closeDlModal();
         finishDlBubble();
@@ -555,6 +581,34 @@ function setDlProgress(pct, status) {
   document.getElementById("dlBubbleRing").style.setProperty("--p", pct + "%");
 }
 
+/* Success celebration: checkmark pop + particle burst on the dl-icon-ring */
+function triggerSuccessAnimation() {
+  const ring = document.getElementById("dlIconRing");
+  const icon = ring.querySelector("i");
+  if (!ring || !icon) return;
+
+  ring.classList.add("success");
+  icon.className = "fa-solid fa-check";
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  // Particle burst
+  const burst = document.createElement("div");
+  burst.className = "success-burst";
+  const colors = 10;
+  for (let i = 0; i < colors; i++) {
+    const p = document.createElement("span");
+    const angle = (i / colors) * Math.PI * 2;
+    const dist = 36 + Math.random() * 18;
+    p.style.setProperty("--bx", `${Math.cos(angle) * dist}px`);
+    p.style.setProperty("--by", `${Math.sin(angle) * dist}px`);
+    p.style.animationDelay = `${Math.random() * 0.1}s`;
+    burst.appendChild(p);
+  }
+  ring.appendChild(burst);
+  setTimeout(() => burst.remove(), 900);
+}
+
 /* ════════════════════════════════════════
    DOWNLOAD MODAL + BUBBLE
 ════════════════════════════════════════ */
@@ -570,6 +624,13 @@ function showDlModal(label) {
   document.getElementById("dlModalDesc").textContent =
     "Please wait while we prepare your file…";
   setDlProgress(0, "Starting…");
+
+  // Reset success animation state from any previous download
+  const ring = document.getElementById("dlIconRing");
+  ring.classList.remove("success");
+  ring.querySelector("i").className = "fa-solid fa-download";
+  ring.querySelector(".success-burst")?.remove();
+
   document.getElementById("dlOverlay").classList.add("visible");
   // Show bubble
   const bubble = document.getElementById("dlBubble");
@@ -1240,6 +1301,9 @@ function lightenHex(hex, percent) {
     card.appendChild(glow);
 
     card.addEventListener("mousemove", (e) => {
+      // Ensure no leftover transition interferes with real-time tracking
+      card.style.transition = "box-shadow .25s ease";
+
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -1261,15 +1325,12 @@ function lightenHex(hex, percent) {
     });
 
     card.addEventListener("mouseleave", () => {
+      card.style.transition =
+        "transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease";
       card.style.transform = "";
-      card.style.transition = "transform .4s cubic-bezier(.34,1.56,.64,1)";
       setTimeout(() => {
         card.style.transition = "";
       }, 400);
-    });
-
-    card.addEventListener("mouseenter", () => {
-      card.style.transition = "transform .15s ease-out";
     });
   });
 })();

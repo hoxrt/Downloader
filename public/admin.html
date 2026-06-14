@@ -1,11 +1,19 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      document.documentElement.setAttribute(
+        "data-theme",
+        localStorage.getItem("vv-theme") || "dark",
+      );
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VideoVault — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap"
       rel="stylesheet"
     />
     <link
@@ -16,6 +24,7 @@
       :root {
         --bg: #06090f;
         --surface: #0b1018;
+        --elevated: #101825;
         --card: rgba(16, 24, 37, 0.85);
         --border: rgba(255, 255, 255, 0.08);
         --accent: #7b6eff;
@@ -29,6 +38,25 @@
         --text-1: #eef2ff;
         --text-2: #8892b0;
         --text-3: #445070;
+        --glass-bg: rgba(255, 255, 255, 0.04);
+        --glass-hover: rgba(255, 255, 255, 0.07);
+        --glass-border-soft: rgba(255, 255, 255, 0.04);
+        --sidebar-bg: rgba(11, 16, 24, 0.95);
+      }
+      [data-theme="light"] {
+        --bg: #f2f4fc;
+        --surface: #e8ecf8;
+        --elevated: #ffffff;
+        --card: rgba(255, 255, 255, 0.9);
+        --border: rgba(0, 0, 0, 0.08);
+        --text-1: #0b1018;
+        --text-2: #445070;
+        --text-3: #8892b0;
+        --glass-bg: rgba(0, 0, 0, 0.03);
+        --glass-hover: rgba(0, 0, 0, 0.05);
+        --glass-border-soft: rgba(0, 0, 0, 0.04);
+        --sidebar-bg: rgba(255, 255, 255, 0.92);
+        --sub: rgba(123, 110, 255, 0.1);
       }
       *,
       *::before,
@@ -37,30 +65,117 @@
         margin: 0;
         padding: 0;
       }
+      html {
+        overflow-x: hidden;
+      }
       body {
         font-family: "DM Sans", sans-serif;
         background: var(--bg);
         color: var(--text-1);
         min-height: 100vh;
+        max-width: 100vw;
+        overflow-x: hidden;
         -webkit-font-smoothing: antialiased;
+        animation: pageFadeIn 0.35s ease both;
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
       }
+      @keyframes pageFadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      body.page-leaving {
+        animation: pageFadeOut 0.25s ease forwards;
+      }
+      @keyframes pageFadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body,
+        body.page-leaving {
+          animation: none;
+        }
+      }
+
+      /* Register mesh position properties for smooth animation */
+      @property --mesh-x1 {
+        syntax: "<percentage>";
+        initial-value: 15%;
+        inherits: true;
+      }
+      @property --mesh-y1 {
+        syntax: "<percentage>";
+        initial-value: 10%;
+        inherits: true;
+      }
+      @property --mesh-x2 {
+        syntax: "<percentage>";
+        initial-value: 85%;
+        inherits: true;
+      }
+      @property --mesh-y2 {
+        syntax: "<percentage>";
+        initial-value: 85%;
+        inherits: true;
+      }
+
+      /* Animated gradient mesh background — follows accent palette */
       body::before {
         content: "";
         position: fixed;
         inset: 0;
+        z-index: 0;
+        pointer-events: none;
         background:
           radial-gradient(
-            ellipse 60% 50% at 15% 10%,
-            rgba(123, 110, 255, 0.1) 0%,
+            ellipse 60% 50% at var(--mesh-x1) var(--mesh-y1),
+            rgba(var(--mesh-c1, 123, 110, 255), 0.1) 0%,
             transparent 55%
           ),
           radial-gradient(
-            ellipse 50% 40% at 85% 85%,
-            rgba(0, 229, 212, 0.06) 0%,
+            ellipse 50% 40% at var(--mesh-x2) var(--mesh-y2),
+            rgba(var(--mesh-c2, 0, 229, 212), 0.06) 0%,
             transparent 50%
           );
-        pointer-events: none;
-        z-index: 0;
+        animation: meshDrift 36s ease-in-out infinite alternate;
+      }
+      @keyframes meshDrift {
+        0% {
+          --mesh-x1: 15%;
+          --mesh-y1: 10%;
+          --mesh-x2: 85%;
+          --mesh-y2: 85%;
+        }
+        50% {
+          --mesh-x1: 25%;
+          --mesh-y1: 25%;
+          --mesh-x2: 75%;
+          --mesh-y2: 70%;
+        }
+        100% {
+          --mesh-x1: 10%;
+          --mesh-y1: 20%;
+          --mesh-x2: 90%;
+          --mesh-y2: 75%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body::before {
+          animation: none;
+        }
+      }
+      [data-theme="light"] body::before {
+        opacity: 0.35;
       }
 
       /* SIDEBAR */
@@ -70,24 +185,47 @@
         left: 0;
         width: 240px;
         height: 100vh;
-        background: rgba(11, 16, 24, 0.95);
+        background: var(--sidebar-bg);
         border-right: 1px solid var(--border);
         backdrop-filter: blur(20px);
         display: flex;
         flex-direction: column;
         z-index: 10;
         padding: 28px 0;
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease;
       }
       .sidebar-logo {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-family: "Syne", sans-serif;
+        gap: 8px;
+        font-family: "Syne", "DM Sans", system-ui, sans-serif;
         font-weight: 800;
-        font-size: 1.15rem;
-        padding: 0 22px 28px;
+        font-size: 1.05rem;
+        padding: 0 18px 28px;
         border-bottom: 1px solid var(--border);
         margin-bottom: 20px;
+      }
+      .theme-toggle-btn {
+        flex-shrink: 0;
+        margin-left: auto;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--glass-bg);
+        border: 1px solid var(--border);
+        color: var(--text-1);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+      }
+      .theme-toggle-btn:hover {
+        background: var(--glass-hover);
+        color: var(--accent);
+        border-color: var(--accent);
       }
       .sidebar-logo-icon {
         width: 32px;
@@ -122,7 +260,7 @@
         border-left: 2px solid transparent;
       }
       .nav-item:hover {
-        background: rgba(255, 255, 255, 0.04);
+        background: var(--glass-bg);
         color: var(--text-1);
       }
       .nav-item.active {
@@ -216,7 +354,7 @@
         margin-bottom: 28px;
       }
       .page-title {
-        font-family: "Syne", sans-serif;
+        font-family: "Syne", "DM Sans", system-ui, sans-serif;
         font-size: 1.6rem;
         font-weight: 800;
         letter-spacing: -0.03em;
@@ -242,11 +380,37 @@
         padding: 22px;
         position: relative;
         overflow: hidden;
-        transition: all 0.25s;
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease,
+          transform 0.25s,
+          box-shadow 0.25s;
+        transform-style: preserve-3d;
+        will-change: transform;
       }
       .stat-card:hover {
-        transform: translateY(-3px);
         box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      }
+      .stat-tilt-glow {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(
+          circle 160px at var(--gx, 50%) var(--gy, 50%),
+          var(--sub),
+          transparent 70%
+        );
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
+      }
+      .stat-card:hover .stat-tilt-glow {
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce), (pointer: coarse) {
+        .stat-card {
+          transform: none !important;
+        }
       }
       .stat-card::before {
         content: "";
@@ -258,10 +422,10 @@
         border-radius: 2px 2px 0 0;
       }
       .stat-card.purple::before {
-        background: linear-gradient(90deg, #7b6eff, #5b9eff);
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
       }
       .stat-card.teal::before {
-        background: linear-gradient(90deg, #00e5d4, #7b6eff);
+        background: linear-gradient(90deg, var(--teal), var(--accent));
       }
       .stat-card.gold::before {
         background: linear-gradient(90deg, #ffb830, #ff6b8a);
@@ -279,7 +443,7 @@
         margin-bottom: 14px;
       }
       .stat-card.purple .stat-icon {
-        background: rgba(123, 110, 255, 0.15);
+        background: var(--sub);
         color: var(--accent);
       }
       .stat-card.teal .stat-icon {
@@ -295,7 +459,7 @@
         color: var(--success);
       }
       .stat-value {
-        font-family: "Syne", sans-serif;
+        font-family: "Syne", "DM Sans", system-ui, sans-serif;
         font-size: 2rem;
         font-weight: 800;
         line-height: 1;
@@ -328,6 +492,9 @@
         border-radius: 18px;
         padding: 24px;
         margin-bottom: 28px;
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease;
       }
       .chart-header {
         display: flex;
@@ -336,7 +503,7 @@
         margin-bottom: 20px;
       }
       .chart-title {
-        font-family: "Syne", sans-serif;
+        font-family: "Syne", "DM Sans", system-ui, sans-serif;
         font-size: 1rem;
         font-weight: 700;
       }
@@ -348,10 +515,12 @@
         height: 160px;
         display: flex;
         align-items: flex-end;
+        justify-content: center;
         gap: 6px;
       }
       .bar-item {
         flex: 1;
+        max-width: 48px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -401,6 +570,9 @@
         border: 1px solid var(--border);
         border-radius: 18px;
         overflow: hidden;
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease;
       }
       .table-header {
         padding: 20px 22px;
@@ -410,7 +582,7 @@
         justify-content: space-between;
       }
       .table-title {
-        font-family: "Syne", sans-serif;
+        font-family: "Syne", "DM Sans", system-ui, sans-serif;
         font-size: 0.95rem;
         font-weight: 700;
       }
@@ -434,14 +606,14 @@
       td {
         padding: 13px 22px;
         font-size: 0.82rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        border-bottom: 1px solid var(--glass-border-soft);
         color: var(--text-2);
       }
       tr:last-child td {
         border-bottom: none;
       }
       tr:hover td {
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--glass-bg);
       }
       .td-title {
         color: var(--text-1);
@@ -467,7 +639,7 @@
         color: #ff4444;
       }
       .plat-badge.twitter {
-        background: rgba(255, 255, 255, 0.07);
+        background: var(--glass-hover);
         color: var(--text-2);
       }
       .plat-badge.tiktok {
@@ -555,6 +727,9 @@
       <div class="sidebar-logo">
         <span class="sidebar-logo-icon"><i class="fa-solid fa-bolt"></i></span>
         VideoVault
+        <button class="theme-toggle-btn" id="themeToggle" title="Toggle theme">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
       </div>
 
       <div class="sidebar-label">Menu</div>
@@ -566,7 +741,7 @@
       </div>
 
       <div class="sidebar-label" style="margin-top: 16px">Quick Links</div>
-      <div class="nav-item" onclick="window.open('/', '_blank')">
+      <div class="nav-item" onclick="goToSite()">
         <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Site
       </div>
 
@@ -741,27 +916,46 @@
       }
 
       function renderStats(data) {
-        // Stat cards
-        document.getElementById("totalDownloads").textContent = (
-          data.totalDownloads || 0
-        ).toLocaleString();
-        document.getElementById("totalMP4").textContent = (
-          data.totalMP4 || 0
-        ).toLocaleString();
-        document.getElementById("totalMP3").textContent = (
-          data.totalMP3 || 0
-        ).toLocaleString();
+        // Stat cards (animated count-up)
+        animateStatValue("totalDownloads", data.totalDownloads || 0);
+        animateStatValue("totalMP4", data.totalMP4 || 0);
+        animateStatValue("totalMP3", data.totalMP3 || 0);
 
         const today = new Date().toISOString().split("T")[0];
-        document.getElementById("todayDownloads").textContent = (
-          data.dailyStats?.[today] || 0
-        ).toLocaleString();
+        animateStatValue("todayDownloads", data.dailyStats?.[today] || 0);
 
         // Chart
         renderChart(data.dailyStats || {});
 
         // Recent table
         renderTable(data.recentDownloads || []);
+      }
+
+      function animateStatValue(id, target) {
+        const el = document.getElementById(id);
+        const prev = parseInt(el.dataset.value || "0", 10);
+        if (prev === target) {
+          el.textContent = target.toLocaleString();
+          return;
+        }
+        el.dataset.value = target;
+
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          el.textContent = target.toLocaleString();
+          return;
+        }
+
+        const duration = 700;
+        const startTime = performance.now();
+        function tick(now) {
+          const progress = Math.min((now - startTime) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const value = Math.round(prev + (target - prev) * eased);
+          el.textContent = value.toLocaleString();
+          if (progress < 1) requestAnimationFrame(tick);
+          else el.textContent = target.toLocaleString();
+        }
+        requestAnimationFrame(tick);
       }
 
       function renderChart(dailyStats) {
@@ -869,13 +1063,109 @@
 
       /* ── Logout ── */
       async function logout() {
+        document.body.classList.add("page-leaving");
         await fetch("/api/admin/logout", { method: "POST" });
-        window.location.href = "/admin";
+        setTimeout(() => {
+          window.location.href = "/admin";
+        }, 220);
       }
+
+      function goToSite() {
+        document.body.classList.add("page-leaving");
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 220);
+      }
+
+      /* ── Theme toggle (synced with main site) ── */
+      (function initTheme() {
+        function setTheme(theme) {
+          document.documentElement.setAttribute("data-theme", theme);
+          localStorage.setItem("vv-theme", theme);
+          const icon = document.getElementById("themeIcon");
+          if (icon)
+            icon.className =
+              theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        const saved = localStorage.getItem("vv-theme") || "dark";
+        setTheme(saved);
+        document
+          .getElementById("themeToggle")
+          ?.addEventListener("click", () => {
+            const current = document.documentElement.getAttribute("data-theme");
+            setTheme(current === "dark" ? "light" : "dark");
+          });
+      })();
 
       // Load on start + auto-refresh every 30s
       loadStats();
       setInterval(loadStats, 30000);
+
+      /* ── Apply saved accent color from main site (Theme Customizer) ── */
+      (function applyAccentTheme() {
+        const c1 = localStorage.getItem("vv-accent-1");
+        const c2 = localStorage.getItem("vv-accent-2");
+        if (!c1 || !c2) return;
+
+        const hexToRgb = (h) => {
+          h = h.replace("#", "");
+          return `${parseInt(h.substr(0, 2), 16)},${parseInt(h.substr(2, 4), 16)},${parseInt(h.substr(4, 6), 16)}`;
+        };
+
+        const root = document.documentElement;
+        root.style.setProperty("--accent", c1);
+        root.style.setProperty("--accent2", c2);
+        root.style.setProperty("--glow", `rgba(${hexToRgb(c1)},0.3)`);
+        root.style.setProperty("--sub", `rgba(${hexToRgb(c1)},0.12)`);
+        root.style.setProperty("--mesh-c1", hexToRgb(c1));
+        root.style.setProperty("--mesh-c2", hexToRgb(c2));
+
+        // Update gradient-based elements that use hardcoded colors
+        document.querySelectorAll(".sidebar-logo-icon").forEach((el) => {
+          el.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+        });
+        document.querySelectorAll(".bar").forEach((el) => {
+          el.style.background = `linear-gradient(to top, ${c1}, ${c2})`;
+        });
+      })();
+
+      /* ── 3D Tilt Effect on stat cards ── */
+      (function initStatCardTilt() {
+        if (window.matchMedia("(pointer: coarse)").matches) return;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+          return;
+
+        const MAX_TILT = 6;
+        document.querySelectorAll(".stat-card").forEach((card) => {
+          const glow = document.createElement("div");
+          glow.className = "stat-tilt-glow";
+          card.appendChild(glow);
+
+          card.addEventListener("mousemove", (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const px = (x / rect.width) * 2 - 1;
+            const py = (y / rect.height) * 2 - 1;
+            const rotateX = (-py * MAX_TILT).toFixed(2);
+            const rotateY = (px * MAX_TILT).toFixed(2);
+            card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-3px)`;
+            card.style.setProperty("--gx", `${(x / rect.width) * 100}%`);
+            card.style.setProperty("--gy", `${(y / rect.height) * 100}%`);
+          });
+          card.addEventListener("mouseenter", () => {
+            card.style.transition = "transform .15s ease-out";
+          });
+          card.addEventListener("mouseleave", () => {
+            card.style.transform = "";
+            card.style.transition =
+              "transform .4s cubic-bezier(.34,1.56,.64,1)";
+            setTimeout(() => {
+              card.style.transition = "";
+            }, 400);
+          });
+        });
+      })();
     </script>
   </body>
 </html>
