@@ -12,6 +12,27 @@ const { recordDownload, getStats } = require("../utils/stats");
 const execAsync = promisify(exec);
 
 /* ════════════════════════════════════════
+   PYTHON COMMAND DETECTION
+   Railway/Linux uses python3, Windows often uses python.
+   Detect once at startup.
+════════════════════════════════════════ */
+let PYTHON = "python3";
+(async () => {
+  try {
+    await execAsync("python3 --version");
+    PYTHON = "python3";
+  } catch {
+    try {
+      await execAsync("python --version");
+      PYTHON = "python";
+    } catch {
+      console.error("⚠️  Neither python3 nor python found!");
+    }
+  }
+  console.log(`[VideoVault] Using Python command: ${PYTHON}`);
+})();
+
+/* ════════════════════════════════════════
    COOKIES RESOLUTION
    - Local dev: reads cookies.txt from project root
    - Railway/production: reads from YT_COOKIES env variable
@@ -110,7 +131,7 @@ async function tikwmFetch(url) {
 
 async function ytDlpInfo(url) {
   const cookiesArg = getCookiesArg();
-  const cmd = `python -m yt_dlp ${cookiesArg} --remote-components ejs:github --dump-json --no-playlist --no-warnings "${url}"`;
+  const cmd = `${PYTHON} -m yt_dlp ${cookiesArg} --remote-components ejs:github --dump-json --no-playlist --no-warnings "${url}"`;
   const { stdout } = await execAsync(cmd, { maxBuffer: 10 * 1024 * 1024 });
   const firstLine = stdout.trim().split("\n")[0];
   return JSON.parse(firstLine);
@@ -438,7 +459,7 @@ router.get("/download", async (req, res) => {
     try {
       const cookiesArg2 = getCookiesArg();
       const { stdout } = await execAsync(
-        `python -m yt_dlp ${cookiesArg2} --remote-components ejs:github --get-title --no-warnings "${url}"`,
+        `${PYTHON} -m yt_dlp ${cookiesArg2} --remote-components ejs:github --get-title --no-warnings "${url}"`,
         { timeout: 15000 },
       );
       // Remove only filesystem-unsafe characters, keep Arabic & other languages
@@ -480,7 +501,7 @@ router.get("/download", async (req, res) => {
 
     await new Promise((resolve, reject) => {
       // yt-dlp يكتب التقدم على stderr — نقرأه من هناك
-      const ytDlp = spawn("python", ["-m", "yt_dlp", ...args]);
+      const ytDlp = spawn(PYTHON, ["-m", "yt_dlp", ...args]);
 
       function parseLine(line) {
         const raw = line.trim();
@@ -607,7 +628,7 @@ router.get("/download", async (req, res) => {
 
 router.get("/health", async (req, res) => {
   try {
-    const { stdout } = await execAsync("python -m yt_dlp --version");
+    const { stdout } = await execAsync(`${PYTHON} -m yt_dlp --version`);
     res.json({ status: "ok", ytDlpVersion: stdout.trim() });
   } catch {
     res
