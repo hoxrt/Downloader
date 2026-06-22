@@ -11,12 +11,77 @@ const { recordDownload, getStats } = require("../utils/stats");
 
 const execAsync = promisify(exec);
 
+async function tikwmFetch(url) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ url });
+    const options = {
+      hostname: "www.tikwm.com",
+      port: 443,
+      path: "/api/",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "VideoVault/1.0",
+        "Content-Length": Buffer.byteLength(body),
+      },
+    };
+
+    const req = require("https").request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+
+          // Check for success (code: 0)
+          if (json.code === 0 && json.data) {
+            // Try different video URL sources in order of preference
+            const videoUrl =
+              json.data.play ||
+              json.data.wmplay ||
+              json.data.download?.noWatermark;
+
+            if (!videoUrl) {
+              throw new Error("No video URL found in TikTok API response");
+            }
+
+            resolve({
+              url: videoUrl,
+              title: json.data.title || "TikTok Video",
+              thumbnail:
+                json.data.cover ||
+                json.data.origin_cover ||
+                json.data.ai_dynamic_cover,
+              author: json.data.author?.nickname || "Unknown",
+            });
+          } else {
+            reject(new Error(json.msg || "TikTok video could not be fetched"));
+          }
+        } catch (e) {
+          console.error("TikTok parse error:", e.message);
+          reject(new Error(`TikTok parse error: ${e.message}`));
+        }
+      });
+    });
+
+    req.on("error", reject);
+    req.setTimeout(15000, () => {
+      req.destroy();
+      reject(new Error("TikTok fetch timeout"));
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
 async function ytDlpInfo(url) {
   const hasCookies = fs.existsSync(path.join(__dirname, "../cookies.txt"));
   const cookiesArg = hasCookies
     ? `--cookies "${path.join(__dirname, "../cookies.txt")}"`
     : "";
-  const cmd = `yt-dlp ${cookiesArg} --remote-components ejs:github --dump-json --no-playlist --no-warnings "${url}"`;
+  const cmd = `python -m yt_dlp ${cookiesArg} --remote-components ejs:github --dump-json --no-playlist --no-warnings "${url}"`;
   const { stdout } = await execAsync(cmd, { maxBuffer: 10 * 1024 * 1024 });
   const firstLine = stdout.trim().split("\n")[0];
   return JSON.parse(firstLine);
@@ -34,6 +99,7 @@ function extractQualities(info) {
     const tbr = f.tbr || 0;
 
     if (!seen.has(key) || tbr > seen.get(key).tbr) {
+      // Build format with audio fallback if needed
       const formatId =
         f.acodec && f.acodec !== "none"
           ? f.format_id
@@ -92,6 +158,46 @@ router.post("/info", async (req, res) => {
       info = await ytDlpInfo(url.trim());
     } catch (err) {
       console.error("yt-dlp error:", err.message);
+
+      // For TikTok — try tikwm API fallback
+      const isTikTok = url.includes("tiktok.com");
+      if (isTikTok) {
+        try {
+          console.log("yt-dlp failed on TikTok — trying tikwm fallback...");
+          const tikwmResult = await tikwmFetch(url.trim());
+
+          // Return simplified response using tikwm data
+          return res.json({
+            title: tikwmResult.title,
+            thumbnail: tikwmResult.thumbnail,
+            duration: "Unknown",
+            durationSeconds: 0,
+            uploader: tikwmResult.author,
+            viewCount: null,
+            platform: {
+              key: "tiktok",
+              name: "TikTok",
+              icon: "fab fa-tiktok",
+              color: "#25F4EE",
+            },
+            qualities: [
+              {
+                formatId: "tikwm",
+                quality: "Best",
+                ext: "mp4",
+                filesize: null,
+                filesizeFormatted: null,
+                tikwmUrl: tikwmResult.url,
+              },
+            ],
+            audioAvailable: false,
+            tikwmMode: true,
+          });
+        } catch (tikwmErr) {
+          console.error("TikTok fallback failed:", tikwmErr.message);
+        }
+      }
+
       if (err.message.includes("Private video"))
         return res.status(400).json({ error: "This video is private." });
       if (err.message.includes("not available"))
@@ -169,10 +275,113 @@ router.get("/download", async (req, res) => {
   let tmpDir = null;
 
   try {
-    const { url, format, type, id } = req.query;
+    const { url, type, id, tikwmUrl } = req.query;
+    // Decode format manually — encodeURIComponent preserves + signs which yt-dlp needs
+    const format = req.query.format
+      ? decodeURIComponent(req.query.format)
+      : null;
     const validation = validateUrl(url);
     if (!validation.valid)
       return res.status(400).json({ error: validation.error });
+
+    // ── TikTok direct download via tikwm ──
+    if (tikwmUrl) {
+      sendProgress(id, {
+        stage: "start",
+        pct: 10,
+        status: "Connecting via tikwm…",
+      });
+      try {
+        const tikwmRes = await new Promise((resolve, reject) => {
+          const parsedUrl = new URL(tikwmUrl);
+          const options = {
+            hostname: parsedUrl.hostname,
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: "GET",
+            headers: { "User-Agent": "VideoVault/1.0" },
+          };
+          const req2 = require("https").request(options, resolve);
+          req2.on("error", reject);
+          req2.setTimeout(30000, () => {
+            req2.destroy();
+            reject(new Error("timeout"));
+          });
+          req2.end();
+        });
+
+        const totalBytes = parseInt(tikwmRes.headers["content-length"] || "0");
+        let downloadedBytes = 0;
+
+        sendProgress(id, {
+          stage: "downloading",
+          pct: 20,
+          status: "Downloading…",
+        });
+
+        const tmpId = crypto.randomBytes(8).toString("hex");
+        tmpDir = path.join(os.tmpdir(), `vv_${tmpId}`);
+        fs.mkdirSync(tmpDir, { recursive: true });
+        const tmpFile = path.join(tmpDir, "video.mp4");
+        const writeStream = fs.createWriteStream(tmpFile);
+
+        await new Promise((resolve, reject) => {
+          tikwmRes.on("data", (chunk) => {
+            downloadedBytes += chunk.length;
+            if (totalBytes > 0) {
+              const pct = Math.min(
+                95,
+                Math.round((downloadedBytes / totalBytes) * 90) + 5,
+              );
+              sendProgress(id, {
+                stage: "downloading",
+                pct,
+                size: `${(totalBytes / 1024 / 1024).toFixed(1)}MB`,
+              });
+            }
+          });
+          tikwmRes.pipe(writeStream);
+          writeStream.on("finish", resolve);
+          writeStream.on("error", reject);
+          tikwmRes.on("error", reject);
+        });
+
+        sendProgress(id, { stage: "done", pct: 100, status: "Complete!" });
+
+        const stat = fs.statSync(tmpFile);
+
+        try {
+          recordDownload({
+            title: "tiktok_video",
+            platform: "tiktok",
+            type: "video",
+            quality: "best",
+            filesize: stat.size,
+          });
+        } catch {}
+
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="tiktok_video.mp4"`,
+        );
+        res.setHeader("Content-Type", "video/mp4");
+        res.setHeader("Content-Length", stat.size);
+        res.setHeader("Access-Control-Expose-Headers", "Content-Length");
+
+        const readStream = fs.createReadStream(tmpFile);
+        readStream.pipe(res);
+        readStream.on("close", () =>
+          fs.rm(tmpDir, { recursive: true, force: true }, () => {}),
+        );
+        return;
+      } catch (tikwmErr) {
+        console.error("TikTok download error:", tikwmErr.message);
+        if (id) sendProgress(id, { stage: "error", pct: 0, status: "Failed" });
+        if (tmpDir) fs.rm(tmpDir, { recursive: true, force: true }, () => {});
+        return res
+          .status(500)
+          .json({ error: "Download failed. Please try again." });
+      }
+    }
 
     const isTwitter = url.includes("twitter.com") || url.includes("x.com");
     const isTikTok = url.includes("tiktok.com");
@@ -183,18 +392,15 @@ router.get("/download", async (req, res) => {
       formatSelector = "bestaudio/best";
       ext = "mp3";
       contentType = "audio/mpeg";
-    } else if (isTwitter) {
-      formatSelector = "http-2176/http-950/http-632";
-      ext = "mp4";
-      contentType = "video/mp4";
-    } else if (isTikTok) {
-      formatSelector = "best[ext=mp4]/best";
-      ext = "mp4";
-      contentType = "video/mp4";
     } else {
-      formatSelector =
-        format ||
-        "18/best[vcodec!=none][acodec!=none][ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best";
+      if (format) {
+        // Use the format as provided (already has +bestaudio fallbacks if needed)
+        formatSelector = format;
+      } else {
+        // Default: best video + best audio
+        formatSelector =
+          "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best";
+      }
       ext = "mp4";
       contentType = "video/mp4";
     }
@@ -206,7 +412,7 @@ router.get("/download", async (req, res) => {
         ? `--cookies "${path.join(__dirname, "../cookies.txt")}"`
         : "";
       const { stdout } = await execAsync(
-        `yt-dlp ${cookiesArg2} --remote-components ejs:github --get-title --no-warnings "${url}"`,
+        `python -m yt_dlp ${cookiesArg2} --remote-components ejs:github --get-title --no-warnings "${url}"`,
         { timeout: 15000 },
       );
       filename = stdout
@@ -247,7 +453,7 @@ router.get("/download", async (req, res) => {
 
     await new Promise((resolve, reject) => {
       // yt-dlp يكتب التقدم على stderr — نقرأه من هناك
-      const ytDlp = spawn("yt-dlp", args);
+      const ytDlp = spawn("python", ["-m", "yt_dlp", ...args]);
 
       function parseLine(line) {
         const raw = line.trim();
@@ -298,7 +504,10 @@ router.get("/download", async (req, res) => {
         d.toString()
           .split("\n")
           .forEach((line) => {
-            console.log("yt-dlp:", line.trim());
+            const t = line.trim();
+            // Only log errors/warnings, not every progress line
+            if (t.includes("ERROR") || t.includes("WARNING"))
+              console.log("yt-dlp:", t);
             parseLine(line);
           });
       });
@@ -364,7 +573,7 @@ router.get("/download", async (req, res) => {
 
 router.get("/health", async (req, res) => {
   try {
-    const { stdout } = await execAsync("yt-dlp --version");
+    const { stdout } = await execAsync("python -m yt_dlp --version");
     res.json({ status: "ok", ytDlpVersion: stdout.trim() });
   } catch {
     res

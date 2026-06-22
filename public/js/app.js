@@ -502,10 +502,21 @@ async function triggerDownload(formatId, type, qualityLabel) {
   // 2) Trigger the actual file download after SSE is set up
   setTimeout(async () => {
     const params = new URLSearchParams({ url: currentUrl, type, id: dlId });
-    if (formatId && type !== "audio") params.set("format", formatId);
+
+    // TikTok mode — pass direct URL for server to proxy-download
+    if (formatId === "tikwm" && currentData?.qualities?.[0]?.tikwmUrl) {
+      params.set("tikwmUrl", currentData.qualities[0].tikwmUrl);
+    }
+
+    // Build URL manually for format to preserve + signs
+    // URLSearchParams converts + to space which breaks yt-dlp format selectors
+    let downloadUrl = `${API}/download?${params}`;
+    if (formatId && type !== "audio" && formatId !== "tikwm") {
+      downloadUrl += `&format=${encodeURIComponent(formatId)}`;
+    }
 
     try {
-      const response = await fetch(`${API}/download?${params}`);
+      const response = await fetch(downloadUrl);
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
