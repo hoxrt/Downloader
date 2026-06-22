@@ -11,6 +11,38 @@ const { recordDownload, getStats } = require("../utils/stats");
 
 const execAsync = promisify(exec);
 
+/* ════════════════════════════════════════
+   COOKIES RESOLUTION
+   - Local dev: reads cookies.txt from project root
+   - Railway/production: reads from YT_COOKIES env variable
+     (write the contents into a temp file at startup)
+════════════════════════════════════════ */
+const COOKIES_PATH = path.join(__dirname, "../cookies.txt");
+
+function resolveCookiesPath() {
+  // 1) Local file already present?
+  if (fs.existsSync(COOKIES_PATH)) return COOKIES_PATH;
+
+  // 2) Env variable? Write to a temp file once.
+  if (process.env.YT_COOKIES) {
+    try {
+      const tmpCookies = path.join(os.tmpdir(), "vv_cookies.txt");
+      if (!fs.existsSync(tmpCookies)) {
+        fs.writeFileSync(tmpCookies, process.env.YT_COOKIES, "utf8");
+      }
+      return tmpCookies;
+    } catch (e) {
+      console.error("Failed to write cookies from env:", e.message);
+    }
+  }
+  return null;
+}
+
+function getCookiesArg() {
+  const p = resolveCookiesPath();
+  return p ? `--cookies "${p}"` : "";
+}
+
 async function tikwmFetch(url) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({ url });
@@ -77,10 +109,7 @@ async function tikwmFetch(url) {
 }
 
 async function ytDlpInfo(url) {
-  const hasCookies = fs.existsSync(path.join(__dirname, "../cookies.txt"));
-  const cookiesArg = hasCookies
-    ? `--cookies "${path.join(__dirname, "../cookies.txt")}"`
-    : "";
+  const cookiesArg = getCookiesArg();
   const cmd = `python -m yt_dlp ${cookiesArg} --remote-components ejs:github --dump-json --no-playlist --no-warnings "${url}"`;
   const { stdout } = await execAsync(cmd, { maxBuffer: 10 * 1024 * 1024 });
   const firstLine = stdout.trim().split("\n")[0];
@@ -407,19 +436,18 @@ router.get("/download", async (req, res) => {
 
     let filename = "video";
     try {
-      const hasCookies2 = fs.existsSync(path.join(__dirname, "../cookies.txt"));
-      const cookiesArg2 = hasCookies2
-        ? `--cookies "${path.join(__dirname, "../cookies.txt")}"`
-        : "";
+      const cookiesArg2 = getCookiesArg();
       const { stdout } = await execAsync(
         `python -m yt_dlp ${cookiesArg2} --remote-components ejs:github --get-title --no-warnings "${url}"`,
         { timeout: 15000 },
       );
-      filename = stdout
-        .trim()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/\s+/g, "_")
-        .substring(0, 80);
+      // Remove only filesystem-unsafe characters, keep Arabic & other languages
+      filename =
+        stdout
+          .trim()
+          .replace(/[\\/:*?"<>|]/g, "") // illegal filename chars
+          .replace(/\s+/g, "_")
+          .substring(0, 80) || "video";
     } catch {}
 
     const tmpId = crypto.randomBytes(8).toString("hex");
@@ -427,7 +455,7 @@ router.get("/download", async (req, res) => {
     fs.mkdirSync(tmpDir, { recursive: true });
 
     const outputTemplate = path.join(tmpDir, `video.%(ext)s`);
-    const hasCookies = fs.existsSync(path.join(__dirname, "../cookies.txt"));
+    const cookiesFilePath = resolveCookiesPath();
     const args = [
       "--no-playlist",
       "--progress",
@@ -441,8 +469,7 @@ router.get("/download", async (req, res) => {
       "-o",
       outputTemplate,
     ];
-    if (hasCookies)
-      args.unshift("--cookies", path.join(__dirname, "../cookies.txt"));
+    if (cookiesFilePath) args.unshift("--cookies", cookiesFilePath);
 
     if (!isTwitter && !isTikTok && type !== "audio")
       args.push("--merge-output-format", "mp4");
@@ -548,10 +575,17 @@ router.get("/download", async (req, res) => {
       });
     } catch {}
 
-    res.setHeader("Access-Control-Expose-Headers", "Content-Length");
+    res.setHeader(
+      "Access-Control-Expose-Headers",
+      "Content-Length, Content-Disposition",
+    );
+    // RFC 5987: filename* supports UTF-8 (Arabic etc.), with ASCII fallback for old browsers
+    const fullName = `${filename}.${realExt}`;
+    const asciiName = fullName.replace(/[^\x20-\x7E]/g, "_"); // fallback
+    const encodedName = encodeURIComponent(fullName);
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${filename}.${realExt}"`,
+      `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
     );
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Length", stat.size);
